@@ -240,7 +240,8 @@ uis.directive('uiSelectChoices',
 
         scope.$watch('$select.search', function(newValue) {
           if(newValue && !$select.open && $select.multiple) $select.activate(false, true);
-          $select.activeIndex = $select.tagging.isActivated ? -1 : 0;
+          //$select.activeIndex = $select.tagging.isActivated ? -1 : 0;
+          $select.activeIndex = 0; //TODO: activeIndex는 무조건 0 으로 설정
           if (!attrs.minimumInputLength || $select.search.length >= attrs.minimumInputLength) {
             $select.refresh(attrs.refresh);
           } else {
@@ -586,12 +587,16 @@ uis.controller('uiSelectCtrl',
         if(ctrl.tagging.isActivated) {
           // if taggingLabel is disabled, we pull from ctrl.search val
           if ( ctrl.taggingLabel === false ) {
+             //TODO: tagging이 false일 때 예외처리 필요. activeIndex의 최소값은 0 (항상 select가 되도록), 없으면 노출 X		
+              //클릭이벤트인지도 판단할 수 있도록 해야함.
             if ( ctrl.activeIndex < 0 ) {
               item = ctrl.tagging.fct !== undefined ? ctrl.tagging.fct(ctrl.search) : ctrl.search;
               if (!item || angular.equals( ctrl.items[0], item ) ) {
                 return;
               }
-            } else {
+            } else if (!item) {		            
+                return;		
+            } else if (!($event && $event.type === 'click')) { //TODO: click일 경우 예외처리
               // keyboard nav happened first, user selected from dropdown
               item = ctrl.items[ctrl.activeIndex];
             }
@@ -1569,7 +1574,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
 
         if ( ! KEY.isVerticalMovement(e.which) ) {
           scope.$evalAsync( function () {
-            $select.activeIndex = $select.taggingLabel === false ? -1 : 0;
+            //$select.activeIndex = $select.taggingLabel === false ? -1 : 0; TODO: -1로 setting안되도록 
           });
         }
         // Push a "create new" item into array if there is a search string
@@ -1580,9 +1585,10 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
             return;
           }
           // always reset the activeIndex to the first item when tagging
-          $select.activeIndex = $select.taggingLabel === false ? -1 : 0;
+          //$select.activeIndex = $select.taggingLabel === false ? -1 : 0;
+          $select.activeIndex = 0 //TODO: taggineLebel이 flase여도 항상 0으로 세팅
           // taggingLabel === false bypasses all of this
-          if ($select.taggingLabel === false) return;
+          //if ($select.taggingLabel === false) return;
 
           var items = angular.copy( $select.items );
           var stashArr = angular.copy( $select.items );
@@ -1606,6 +1612,9 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
               stashArr = stashArr.slice(1,stashArr.length);
             }
             newItem = $select.tagging.fct($select.search);
+             if(!newItem) {//TODO: taging false일때 item이 없으면 생성 안되도록		
+                return;		
+            }
             // verify the new tag doesn't match the value of a possible selection choice or an already selected item.
             if (
               stashArr.some(function (origItem) {

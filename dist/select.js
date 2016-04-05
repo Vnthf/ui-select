@@ -487,7 +487,10 @@ uis.controller('uiSelectCtrl',
         if ( data !== undefined ) {
           var filteredItems = data.filter(function(i) {
             return selectedItems.every(function(selectedItem) {
-              return !angular.equals(i, selectedItem);
+                return !ctrl.customFilter ? !angular.equals(i, selectedItem) : !ctrl.customFilter($scope, {	
+                    $item: i,		
+                    $listItem: selectedItem		
+                });
             });
           });
           ctrl.setItemsFn(filteredItems);
@@ -953,7 +956,8 @@ uis.directive('uiSelect',
 
         $select.onSelectCallback = $parse(attrs.onSelect);
         $select.onRemoveCallback = $parse(attrs.onRemove);
-
+        $select.customFilter = $parse(attrs.customFilter);
+        
         //Limit the number of selections allowed
         $select.limit = (angular.isDefined(attrs.limit)) ? parseInt(attrs.limit, 10) : undefined;
 
@@ -1468,7 +1472,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
           }
         }
         $select.selected = ngModel.$viewValue;
-        $selectMultiple.refreshComponent();
+        //$selectMultiple.refreshComponent();
         scope.$evalAsync(); //To force $digest
       };
 

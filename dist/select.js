@@ -209,6 +209,7 @@ uis.directive('uiSelectChoices',
         $select.onHighlightCallback = attrs.onHighlight;
 
         $select.dropdownPosition = attrs.position ? attrs.position.toLowerCase() : uiSelectConfig.dropdownPosition;
+        $select.refreshAttr = attrs.refresh;
 
         if(groupByExp) {
           var groups = element.querySelectorAll('.ui-select-choices-group');
@@ -370,7 +371,7 @@ uis.controller('uiSelectCtrl',
   ctrl.activate = function(initSearchValue, avoidReset) {
     if (!ctrl.disabled  && !ctrl.open) {
       if(!avoidReset) _resetSearchInput();
-
+      ctrl.refresh(ctrl.refreshAttr);
       $scope.$broadcast('uis:activate');
 
       ctrl.open = true;

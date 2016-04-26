@@ -600,9 +600,9 @@ uis.controller('uiSelectCtrl',
               }
             } else if (!item) {		            
                 return;		
-            } else if (!($event && $event.type === 'click')) { //TODO: click일 경우 예외처리
+            } else if ($event && $event.type === 'click') { //TODO: click일 경우 예외처리
               // keyboard nav happened first, user selected from dropdown
-              item = ctrl.items[ctrl.activeIndex];
+              //item = ctrl.items[ctrl.activeIndex];
             }
           } else {
             // tagging always operates at index zero, taggingLabel === false pushes

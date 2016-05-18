@@ -483,6 +483,14 @@ uis.controller('uiSelectCtrl',
       var selectedItems = ctrl.selected;
       //TODO should implement for single mode removeSelected
       if (ctrl.isEmpty() || (angular.isArray(selectedItems) && !selectedItems.length) || !ctrl.removeSelected) {
+         if(ctrl.customFilter) {
+              data = data.filter(function(item) {
+                  return !ctrl.customFilter($scope, {
+                      $item: item,
+                      $listItem: {}
+                  });
+              });
+          }
         ctrl.setItemsFn(data);
       }else{
         if ( data !== undefined ) {

@@ -391,7 +391,7 @@ uis.controller('uiSelectCtrl',
             // Only focus input after the animation has finished
             $timeout(function () {
               ctrl.focusSearchInput(initSearchValue);
-            });
+            }, 0, false);
           }
         });
       } else {
@@ -400,7 +400,7 @@ uis.controller('uiSelectCtrl',
           if(!ctrl.tagging.isActivated && ctrl.items.length > 1) {
             _ensureHighlightVisible();
           }
-        });
+        }, 0, false);
       }
     }
   };
@@ -549,7 +549,7 @@ uis.controller('uiSelectCtrl',
       }
       _refreshDelayPromise = $timeout(function() {
         $scope.$eval(refreshAttr);
-      }, ctrl.refreshDelay);
+      }, ctrl.refreshDelay, false);
     }
   };
 
@@ -648,7 +648,7 @@ uis.controller('uiSelectCtrl',
           ctrl.onSelectCallback($scope, {
             $item: item,
             $model: ctrl.parserResult.modelMapper($scope, locals)
-          });
+          }, 0, false);
         });
 
         if (ctrl.closeOnSelect) {
@@ -735,7 +735,7 @@ uis.controller('uiSelectCtrl',
           }
         });
       }
-    });
+    }, 0, false);
   };
 
   function _handleDropDownSelection(key) {
@@ -806,7 +806,7 @@ uis.controller('uiSelectCtrl',
                 newItem = ctrl.tagging.fct( newItem );
               }
               if (newItem) ctrl.select(newItem, true);
-            });
+            }, 0, false);
           }
         }
       }
@@ -865,7 +865,7 @@ uis.controller('uiSelectCtrl',
   ctrl.searchInput.on('tagged', function() {
     $timeout(function() {
       _resetSearchInput();
-    });
+    }, 0, false);
   });
 
   // See https://github.com/ivaynberg/select2/blob/3.4.6/select2.js#L1431
@@ -1051,7 +1051,7 @@ uis.directive('uiSelect',
         if (angular.isDefined(attrs.autofocus)){
           $timeout(function(){
             $select.setFocus();
-          });
+          }, 0, false);
         }
 
         //Gets focus based on scope event name (e.g. focus-on='SomeEventName')
@@ -1059,7 +1059,7 @@ uis.directive('uiSelect',
           scope.$on(attrs.focusOn, function() {
               $timeout(function(){
                 $select.setFocus();
-              });
+              }, 0, false);
           });
         }
 
@@ -1267,7 +1267,7 @@ uis.directive('uiSelect',
 
               // Display the dropdown once it has been positioned.
               dropdown[0].style.opacity = 1;
-            });
+            }, 0, false);
           } else {
               if (dropdown === null || dropdown.length === 0) {
                 return;
@@ -1373,7 +1373,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
             $item: removedChoice,
             $model: $select.parserResult.modelMapper($scope, locals)
           });
-        });
+        }, 0, false);
 
         ctrl.updateModel();
 
@@ -1747,7 +1747,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
       $select.searchInput.on('blur', function() {
         $timeout(function() {
           $selectMultiple.activeMatchIndex = -1;
-        });
+        }, 0, false);
       });
 
     }
@@ -1949,7 +1949,7 @@ uis.directive('uiSelectSort', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr', f
         $timeout.cancel(dropTimeout);
         dropTimeout = $timeout(function() {
           _dropHandler(droppedItemIndex);
-        }, 20);
+        }, 20, false);
       };
 
       var _dropHandler = function(droppedItemIndex) {

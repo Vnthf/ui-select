@@ -641,11 +641,13 @@ uis.controller('uiSelectCtrl',
 
         $scope.$broadcast('uis:select', item);
 
-        var locals = {};
+        // TODO 검색을 위해 선택시에 keyword를 추가
+        var locals = {}, keyword = ctrl.search;
         locals[ctrl.parserResult.itemName] = item;
 
         $timeout(function(){
           ctrl.onSelectCallback($scope, {
+            $keyword: keyword,
             $item: item,
             $model: ctrl.parserResult.modelMapper($scope, locals)
           }, 0, false);

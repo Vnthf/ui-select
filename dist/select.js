@@ -6,7 +6,7 @@
  */
 
 
-(function () { 
+(function () {
 "use strict";
 var KEY = {
     TAB: 9,
@@ -496,9 +496,9 @@ uis.controller('uiSelectCtrl',
         if ( data !== undefined ) {
           var filteredItems = data.filter(function(i) {
             return selectedItems.every(function(selectedItem) {
-                return !ctrl.customFilter ? !angular.equals(i, selectedItem) : !ctrl.customFilter($scope, {	
-                    $item: i,		
-                    $listItem: selectedItem		
+                return !ctrl.customFilter ? !angular.equals(i, selectedItem) : !ctrl.customFilter($scope, {
+                    $item: i,
+                    $listItem: selectedItem
                 });
             });
           });
@@ -599,15 +599,15 @@ uis.controller('uiSelectCtrl',
         if(ctrl.tagging.isActivated) {
           // if taggingLabel is disabled, we pull from ctrl.search val
           if ( ctrl.taggingLabel === false ) {
-             //TODO: tagging이 false일 때 예외처리 필요. activeIndex의 최소값은 0 (항상 select가 되도록), 없으면 노출 X		
+             //TODO: tagging이 false일 때 예외처리 필요. activeIndex의 최소값은 0 (항상 select가 되도록), 없으면 노출 X
               //클릭이벤트인지도 판단할 수 있도록 해야함.
             if ( ctrl.activeIndex < 0 ) {
               item = ctrl.tagging.fct !== undefined ? ctrl.tagging.fct(ctrl.search) : ctrl.search;
               if (!item || angular.equals( ctrl.items[0], item ) ) {
                 return;
               }
-            } else if (!item) {		            
-                return;		
+            } else if (!item) {
+                return;
             } else if ($event && $event.type === 'click') { //TODO: click일 경우 예외처리
               // keyboard nav happened first, user selected from dropdown
               //item = ctrl.items[ctrl.activeIndex];
@@ -965,11 +965,11 @@ uis.directive('uiSelect',
 
         $select.onSelectCallback = $parse(attrs.onSelect);
         $select.onRemoveCallback = $parse(attrs.onRemove);
-        
+
         if(attrs.customFilter) {
           $select.customFilter = $parse(attrs.customFilter);
         }
-        
+
         //Limit the number of selections allowed
         $select.limit = (angular.isDefined(attrs.limit)) ? parseInt(attrs.limit, 10) : undefined;
 
@@ -1335,7 +1335,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
         $select.selected = [];
 
       //Wait for link fn to inject it
-      $scope.$evalAsync(function(){ ngModel = $scope.ngModel; });
+      $scope.$applyAsync(function(){ ngModel = $scope.ngModel; });
 
       ctrl.activeMatchIndex = -1;
 
@@ -1485,7 +1485,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
         }
         $select.selected = ngModel.$viewValue;
         //$selectMultiple.refreshComponent();
-        scope.$evalAsync(); //To force $digest
+        scope.$applyAsync(); //To force $digest
       };
 
       scope.$on('uis:select', function (event, item) {
@@ -1507,7 +1507,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
 
       $select.searchInput.on('keydown', function(e) {
         var key = e.which;
-        scope.$apply(function() {
+        scope.$applyAsync(function() {
           var processed = false;
           // var tagged = false; //Checkme
           if(KEY.isHorizontalMovement(key)){
@@ -1588,11 +1588,12 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
 
       $select.searchInput.on('keyup', function(e) {
 
-        if ( ! KEY.isVerticalMovement(e.which) ) {
-          scope.$evalAsync( function () {
-            //$select.activeIndex = $select.taggingLabel === false ? -1 : 0; TODO: -1로 setting안되도록 
-          });
-        }
+        // TODO: -1로 setting안되도록
+        //if ( ! KEY.isVerticalMovement(e.which) ) {
+        //  scope.$applyAsync( function () {
+        //    $select.activeIndex = $select.taggingLabel === false ? -1 : 0;
+        //  });
+        //}
         // Push a "create new" item into array if there is a search string
         if ( $select.tagging.isActivated && $select.search.length > 0 ) {
 
@@ -1602,7 +1603,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
           }
           // always reset the activeIndex to the first item when tagging
           //$select.activeIndex = $select.taggingLabel === false ? -1 : 0;
-          $select.activeIndex = 0 //TODO: taggineLebel이 flase여도 항상 0으로 세팅
+          $select.activeIndex = 0 //TODO: taggingLabel이 flase여도 항상 0으로 세팅
           // taggingLabel === false bypasses all of this
           //if ($select.taggingLabel === false) return;
 
@@ -1628,8 +1629,8 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
               stashArr = stashArr.slice(1,stashArr.length);
             }
             newItem = $select.tagging.fct($select.search);
-             if(!newItem) {//TODO: taging false일때 item이 없으면 생성 안되도록		
-                return;		
+             if(!newItem) {//TODO: taging false일때 item이 없으면 생성 안되도록
+                return;
             }
             // verify the new tag doesn't match the value of a possible selection choice or an already selected item.
             if (
@@ -1640,7 +1641,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
                 return angular.equals(origItem, newItem);
               })
             ) {
-              scope.$evalAsync(function () {
+              scope.$applyAsync(function () {
                 $select.activeIndex = 0;
                 $select.items = items;
               });
@@ -1674,7 +1675,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
               // and return early
               if ( hasTag ) {
                 items = stashArr;
-                scope.$evalAsync( function () {
+                scope.$applyAsync( function () {
                   $select.activeIndex = 0;
                   $select.items = items;
                 });
@@ -1698,7 +1699,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
             items.push(newItem);
             items = items.concat(stashArr);
           }
-          scope.$evalAsync( function () {
+          scope.$applyAsync( function () {
             $select.activeIndex = 0;
             $select.items = items;
           });
@@ -1829,12 +1830,12 @@ uis.directive('uiSelectSingle', ['$timeout','$compile', function($timeout, $comp
 
       element.parent().append(focusser);
       focusser.bind("focus", function(){
-        scope.$evalAsync(function(){
+        scope.$applyAsync(function(){
           $select.focus = true;
         });
       });
       focusser.bind("blur", function(){
-        scope.$evalAsync(function(){
+        scope.$applyAsync(function(){
           $select.focus = false;
         });
       });
@@ -1844,7 +1845,7 @@ uis.directive('uiSelectSingle', ['$timeout','$compile', function($timeout, $comp
           e.preventDefault();
           e.stopPropagation();
           $select.select(undefined);
-          scope.$apply();
+          scope.$applyAsync();
           return;
         }
 
@@ -1972,7 +1973,7 @@ uis.directive('uiSelectSort', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr', f
 
         move.apply(theList, [droppedItemIndex, newIndex]);
 
-        scope.$apply(function() {
+        scope.$applyAsync(function() {
           scope.$emit('uiSelectSort:change', {
             array: theList,
             item: itemToMove,
@@ -2056,12 +2057,12 @@ uis.service('uisRepeatParser', ['uiSelectMinErr','$parse', function(uiSelectMinE
       throw uiSelectMinErr('iexp', "Expected expression in form of '_item_ in _collection_[ track by _id_]' but got '{0}'.",
               expression);
     }
-    
-    var source = match[5], 
+
+    var source = match[5],
         filters = '';
 
     // When using (key,value) ui-select requires filters to be extracted, since the object
-    // is converted to an array for $select.items 
+    // is converted to an array for $select.items
     // (in which case the filters need to be reapplied)
     if (match[3]) {
       // Remove any enclosing parenthesis
@@ -2071,7 +2072,7 @@ uis.service('uisRepeatParser', ['uiSelectMinErr','$parse', function(uiSelectMinE
       if(filterMatch && filterMatch[1].trim()) {
         filters = filterMatch[1];
         source = source.replace(filters, '');
-      }      
+      }
     }
 
     return {
@@ -2087,7 +2088,7 @@ uis.service('uisRepeatParser', ['uiSelectMinErr','$parse', function(uiSelectMinE
           expression += ' track by ' + this.trackByExp;
         }
         return expression;
-      } 
+      }
     };
 
   };

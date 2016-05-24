@@ -1510,7 +1510,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
 
       $select.searchInput.on('keydown', function(e) {
         var key = e.which;
-        scope.$applyAsync(function() {
+        scope.$apply(function() {
           var processed = false;
           // var tagged = false; //Checkme
           if(KEY.isHorizontalMovement(key)){

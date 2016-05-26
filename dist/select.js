@@ -521,6 +521,12 @@ uis.controller('uiSelectCtrl',
         if (!angular.isArray(items)) {
           throw uiSelectMinErr('items', "Expected an array but got '{0}'.", items);
         } else {
+          // TODO 기본적으로 tagging을 추가함
+          var mockTag = angular.isFunction(ctrl.tagging.fct) && ctrl.tagging.fct(ctrl.search);
+          if (mockTag) {
+            items = angular.copy(items);
+            items.unshift(mockTag);
+          }
           //Remove already selected items (ex: while searching)
           //TODO Should add a test
           ctrl.refreshItems(items);

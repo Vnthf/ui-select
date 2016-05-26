@@ -800,7 +800,8 @@ uis.controller('uiSelectCtrl',
         _handleDropDownSelection(key);
         if ( ctrl.taggingTokens.isActivated ) {
           for (var i = 0; i < ctrl.taggingTokens.tokens.length; i++) {
-            if ( ctrl.taggingTokens.tokens[i] === KEY.MAP[e.keyCode] ) {
+            // ,를 구분자로 넣으면 <와 ,를 구분하지 못해서 버그가 생기므로 이를 해결하기 위해 shiftKey를 눌렀는지 확인
+            if ( ctrl.taggingTokens.tokens[i] === KEY.MAP[e.keyCode] && !e.shiftKey ) {
               // make sure there is a new value to push via tagging
               if ( ctrl.search.length > 0 ) {
                 tagged = true;

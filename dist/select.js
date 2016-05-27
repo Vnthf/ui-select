@@ -814,9 +814,15 @@ uis.controller('uiSelectCtrl',
               var newItem = ctrl.search.replace(KEY.MAP[e.keyCode],'').trim();
               if ( ctrl.tagging.fct ) {
                 newItem = ctrl.tagging.fct( newItem );
+                // 토큰으로 태그를 만들 때에도 customFilter를 적용하여 사용자 의도를 맞춤
+                angular.forEach(ctrl.selected, function (listItem) {
+                  if (ctrl.customFilter($scope, { $item: newItem, $listItem: listItem})) {
+                    newItem = null;
+                  }
+                });
               }
               if (newItem) ctrl.select(newItem, true);
-            }, 0, false);
+            });
           }
         }
       }

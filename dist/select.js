@@ -184,13 +184,13 @@ uis.directive('uiSelectChoices',
     require: '^uiSelect',
     replace: true,
     transclude: true,
-    templateUrl: function(tElement) {
+    templateUrl: function(tElement, attrs) {
       // Needed so the uiSelect can detect the transcluded content
       tElement.addClass('ui-select-choices');
 
       // Gets theme attribute from parent (ui-select)
       var theme = tElement.parent().attr('theme') || uiSelectConfig.theme;
-      return theme + '/choices.tpl.html';
+      return attrs.templateUrl || theme + '/choices.tpl.html';
     },
 
     compile: function(tElement, tAttrs) {
@@ -928,7 +928,7 @@ uis.directive('uiSelect',
     restrict: 'EA',
     templateUrl: function(tElement, tAttrs) {
       var theme = tAttrs.theme || uiSelectConfig.theme;
-      return theme + (angular.isDefined(tAttrs.multiple) ? '/select-multiple.tpl.html' : '/select.tpl.html');
+      return tAttrs.templateUrl || theme + (angular.isDefined(tAttrs.multiple) ? '/select-multiple.tpl.html' : '/select.tpl.html');
     },
     replace: true,
     transclude: true,
@@ -1306,14 +1306,14 @@ uis.directive('uiSelectMatch', ['uiSelectConfig', function(uiSelectConfig) {
     require: '^uiSelect',
     replace: true,
     transclude: true,
-    templateUrl: function(tElement) {
+    templateUrl: function(tElement, tAttrs) {
       // Needed so the uiSelect can detect the transcluded content
       tElement.addClass('ui-select-match');
 
       // Gets theme attribute from parent (ui-select)
       var theme = tElement.parent().attr('theme') || uiSelectConfig.theme;
       var multi = tElement.parent().attr('multiple');
-      return theme + (multi ? '/match-multiple.tpl.html' : '/match.tpl.html');
+      return tAttrs.templateUrl || theme + (multi ? '/match-multiple.tpl.html' : '/match.tpl.html');
     },
     link: function(scope, element, attrs, $select) {
       $select.lockChoiceExpression = attrs.uiLockChoice;

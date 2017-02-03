@@ -868,7 +868,7 @@
                     ctrl.select(newItem, true);
                   }
                 });
-                ctrl.search = oldsearch || EMPTY_SEARCH;
+                ctrl.search = EMPTY_SEARCH;
                 e.preventDefault();
                 e.stopPropagation();
               }

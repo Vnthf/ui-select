@@ -843,8 +843,28 @@
 
         });
 
+        function _pasteData(el, data) {
+          var value = el.value;
+          if(angular.isNumber(el.selectionStart)) {
+            var startPos = el.selectionStart,
+              endPos = el.selectionEnd,
+              result = value.slice(0, startPos) + data + value.slice(endPos);
+            startPos += data.length;
+            endPos = startPos;
+            return {
+              result: result,
+              startPos: startPos,
+              endPos: endPos
+            };
+          }
+          // selectionStart is not supported in IE8 and we don't want hacky workarounds so we compromise
+          else return {
+            result: value + data
+          };
+        }
+
         ctrl.searchInput.on('paste', function (e) {
-          var data;
+          var data, result;
 
           if (window.clipboardData && window.clipboardData.getData) { // IE
             data = window.clipboardData.getData('Text');
@@ -853,7 +873,8 @@
           }
 
           // Prepend the current input field text to the paste buffer.
-          data = ctrl.search + data;
+          result = _pasteData(e.target, data);
+          data = result.result;
 
           if (data && data.length > 0) {
             // If tagging try to split by tokens and add items
@@ -861,14 +882,23 @@
               var separator = KEY.toSeparator(ctrl.taggingTokens.tokens[0]);
               var items = data.split(separator || ctrl.taggingTokens.tokens[0]); // split by first token only
               if (items && items.length > 0) {
-                var oldsearch = ctrl.search;
                 angular.forEach(items, function (item) {
                   var newItem = ctrl.tagging.fct ? ctrl.tagging.fct(item) : item;
                   if (newItem) {
                     ctrl.select(newItem, true);
+                    data = null;
                   }
                 });
-                ctrl.search = EMPTY_SEARCH;
+                $scope.$applyAsync(function () {
+                  ctrl.search = data || EMPTY_SEARCH;
+                  if (_.isNumber(result.startPos)) {
+                    $timeout(function () {
+                      e.target.selectionStart = result.startPos;
+                      e.target.selectionEnd = result.endPos;
+                    }, 0, false);
+                  }
+                });
+
                 e.preventDefault();
                 e.stopPropagation();
               }

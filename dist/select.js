@@ -2063,6 +2063,97 @@
       }
     };
   }]);
+  
+    //추후 개발환경 세팅해서 file로 분리 
+    uis.factory('uiSelectDragFactory', function(){ return {} });
+
+    //추후 개발환경 세팅해서 file로 분리 
+    uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr', 'uiSelectDragFactory', function($timeout, uiSelectConfig, uiSelectMinErr, uiSelectDragFactory) {
+        return {
+            require: 'uiSelect',
+            link: function(scope, element, attrs, $select) {
+                element.addClass('ui-select-moveable');
+                //현재 select가 drag중인지 체크
+                var isDragging = false,
+                    DROPPABLE_CLASS = 'ui-select-droppable',
+                    DRAG_ITEM_TYPE = 'ui-select-item';
+
+                element.on('dragstart', function(event) {
+                    isDragging = true;
+                    uiSelectDragFactory.onAllowDrop = false;
+                    event.dataTransfer.effectAllowed = "move";
+                    var targetScope = angular.element(event.target).scope();
+                    var item = targetScope.$item;
+                    event.dataTransfer.setData(DRAG_ITEM_TYPE, JSON.stringify(item));
+                });
+
+                element.on('dragend', function(event) {
+                    isDragging = false;
+                    event.currentTarget.classList.remove(DROPPABLE_CLASS);
+
+                    if(uiSelectDragFactory.onAllowDrop) {
+                        var scope = angular.element(event.target).scope();
+                        $select.selected.splice(scope.$index, 1);
+                        scope.$selectMultiple.updateModel();
+                    }
+
+                });
+
+                element.on('drop', function(event) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "none";
+                    event.currentTarget.classList.remove(DROPPABLE_CLASS);
+
+                    if(!isAllowDrop(event)) {
+                        uiSelectDragFactory.onAllowDrop = false;
+                        return true;
+                    }
+
+                    var item = JSON.parse(event.dataTransfer.getData(DRAG_ITEM_TYPE));
+                    $select.selected.push(item);
+                    scope.$selectMultiple.updateModel();
+                });
+
+                element.on('dragenter', function(event) {
+                    event.preventDefault();
+                    event.currentTarget.classList.add(DROPPABLE_CLASS);
+                    uiSelectDragFactory.onAllowDrop = isAllowDrop(event);
+                    return true;
+                });
+
+
+                element.on('dragleave', function(event) {
+                    event.preventDefault();
+                    event.currentTarget.classList.remove(DROPPABLE_CLASS);
+                    uiSelectDragFactory.onAllowDrop = false;
+                    return true;
+                });
+
+                element.on('dragover', function(event) {
+                    event.preventDefault();
+                    uiSelectDragFactory.onAllowDrop = isAllowDrop(event);
+                    event.currentTarget.classList.add(DROPPABLE_CLASS);
+                    event.dataTransfer.dropEffect = "move";
+                    return true;
+                });
+
+                //dragged인 아이템이 같은 컴퍼넌트가 아니고 type이 ui-select일 경우
+                function isAllowDrop(event) {
+                    return event.dataTransfer.types.includes(DRAG_ITEM_TYPE) && !isDragging;
+                }
+
+                scope.$on('$destroy', function(){
+                    element.off('dragstart');
+                    element.off('dragend');
+                    element.off('drop');
+                    element.off('dragenter');
+                    element.off('dragleave');
+                    element.off('dragover');
+                });
+
+            }
+        };
+    }]);
 
   /**
    * Parses "repeat" attribute.

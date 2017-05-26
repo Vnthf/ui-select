@@ -2107,8 +2107,10 @@
                     }
 
                     var item = JSON.parse(event.dataTransfer.getData(DRAG_ITEM_TYPE));
-                    if($select.customFilter(scope, {$item: item, $listItem: $select.selected})) {
-                        return;
+                    for (var i = 0; i < $select.selected.length; i++) {
+                        if($select.customFilter(scope, {$item: item, $listItem: $select.selected[i]})) {
+                            return;
+                        }
                     }
 
                     $select.selected.push(item);

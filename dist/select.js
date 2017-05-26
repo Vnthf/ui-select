@@ -2076,27 +2076,24 @@
                 //현재 select가 drag중인지 체크
                 var isDragging = false,
                     DROPPABLE_CLASS = 'ui-select-droppable',
+                    DRAG_ITEM_CLASS = 'ui-select-match-item',
                     DRAG_ITEM_TYPE = 'ui-select-item';
 
                 element.on('dragstart', function(event) {
                     isDragging = true;
                     uiSelectDragFactory.onAllowDrop = false;
                     event.dataTransfer.effectAllowed = "move";
-                    var targetScope = angular.element(event.target).scope();
-                    var item = targetScope.$item;
+                    var item = $select.selected[$(this).index()];
                     event.dataTransfer.setData(DRAG_ITEM_TYPE, JSON.stringify(item));
                 });
 
                 element.on('dragend', function(event) {
                     isDragging = false;
                     event.currentTarget.classList.remove(DROPPABLE_CLASS);
-
                     if(uiSelectDragFactory.onAllowDrop) {
-                        var scope = angular.element(event.target).scope();
-                        $select.selected.splice(scope.$index, 1);
+                        $select.selected.splice($(this).index(), 1);
                         scope.$selectMultiple.updateModel();
                     }
-
                 });
 
                 element.on('drop', function(event) {
@@ -2110,6 +2107,10 @@
                     }
 
                     var item = JSON.parse(event.dataTransfer.getData(DRAG_ITEM_TYPE));
+                    if($select.customFilter(scope, {$item: item, $listItem: $select.selected})) {
+                        return;
+                    }
+
                     $select.selected.push(item);
                     scope.$selectMultiple.updateModel();
                 });

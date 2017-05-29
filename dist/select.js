@@ -2079,7 +2079,7 @@
                     DRAG_ITEM_CLASS = 'ui-select-match-item',
                     DRAG_ITEM_TYPE = 'ui-select-item';
 
-                element.on('dragstart', function(event) {
+                element.on('dragstart', '.' + DRAG_ITEM_CLASS, function(event) {
                     isDragging = true;
                     uiSelectDragFactory.onAllowDrop = false;
                     event.dataTransfer.effectAllowed = "move";
@@ -2087,7 +2087,7 @@
                     event.dataTransfer.setData(DRAG_ITEM_TYPE, JSON.stringify(item));
                 });
 
-                element.on('dragend', function(event) {
+                element.on('dragend', '.' + DRAG_ITEM_CLASS, function(event) {
                     isDragging = false;
                     event.currentTarget.classList.remove(DROPPABLE_CLASS);
                     if(uiSelectDragFactory.onAllowDrop) {

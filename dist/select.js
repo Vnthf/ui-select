@@ -558,7 +558,7 @@
             }
             _refreshDelayPromise = $timeout(function() {
               $scope.$eval(refreshAttr);
-            }, ctrl.refreshDelay, false);
+            }, ctrl.refreshDelay);
           }
         };
 

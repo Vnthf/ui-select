@@ -263,6 +263,38 @@
         };
       }]);
 
+  uis.directive('uiSelectHeader', ['uiSelectConfig', function (uiSelectConfig) {
+    return {
+      templateUrl: function (tElement) {
+        // Needed so the uiSelect can detect the transcluded content
+        tElement.addClass('ui-select-header');
+
+        // Gets theme attribute from parent (ui-select)
+        var theme = tElement.parent().attr('theme') || uiSelectConfig.theme;
+        return theme + '/header.tpl.html';
+      },
+      restrict: 'EA',
+      transclude: true,
+      replace: true
+    };
+  }]);
+
+  uis.directive('uiSelectFooter', ['uiSelectConfig', function (uiSelectConfig) {
+    return {
+      templateUrl: function (tElement) {
+        // Needed so the uiSelect can detect the transcluded content
+        tElement.addClass('ui-select-footer');
+
+        // Gets theme attribute from parent (ui-select)
+        var theme = tElement.parent().attr('theme') || uiSelectConfig.theme;
+        return theme + '/footer.tpl.html';
+      },
+      restrict: 'EA',
+      transclude: true,
+      replace: true
+    };
+  }]);
+
   /**
    * Contains ui-select "intelligence".
    *
@@ -1173,6 +1205,24 @@
                   throw uiSelectMinErr('transcluded', "Expected 1 .ui-select-choices but got '{0}'.", transcludedChoices.length);
                 }
                 element.querySelectorAll('.ui-select-choices').replaceWith(transcludedChoices);
+
+                var transcludedHeader = transcluded.querySelectorAll('.ui-select-header');
+                transcludedHeader.removeAttr('ui-select-header'); // To avoid loop in case directive as attr
+                transcludedHeader.removeAttr('data-ui-select-header'); // Properly handle HTML5 data-attributes
+                if (transcludedHeader.length == 1) {
+                  element.querySelectorAll('.ui-select-header').replaceWith(transcludedHeader);
+                } else {
+                  element.querySelectorAll('.ui-select-header').remove();
+                }
+
+                var transcludedFooter = transcluded.querySelectorAll('.ui-select-footer');
+                transcludedFooter.removeAttr('ui-select-footer'); // To avoid loop in case directive as attr
+                transcludedFooter.removeAttr('data-ui-select-footer'); // Properly handle HTML5 data-attributes
+                if (transcludedFooter.length == 1) {
+                  element.querySelectorAll('.ui-select-footer').replaceWith(transcludedFooter);
+                } else {
+                  element.querySelectorAll('.ui-select-footer').remove();
+                }
               });
 
               // Support for appending the select field to the body when its open
@@ -2063,11 +2113,11 @@
       }
     };
   }]);
-  
-    //추후 개발환경 세팅해서 file로 분리 
+
+    //추후 개발환경 세팅해서 file로 분리
     uis.factory('uiSelectDragFactory', function(){ return {} });
 
-    //추후 개발환경 세팅해서 file로 분리 
+    //추후 개발환경 세팅해서 file로 분리
     uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr', 'uiSelectDragFactory', function($timeout, uiSelectConfig, uiSelectMinErr, uiSelectDragFactory) {
         return {
             require: 'uiSelect',

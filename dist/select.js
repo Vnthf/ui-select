@@ -295,7 +295,7 @@
     };
   }]);
 
-  uis.directive('uisOpenClose', ['$parse', '$timeout', function ($parse, $timeout) {
+  uis.directive('uisOpenClose', ['$parse', function ($parse) {
     return {
       restrict: 'A',
       require: 'uiSelect',
@@ -304,11 +304,9 @@
         $select.onOpenCloseCallback = $parse(attrs.uisOpenClose);
         scope.$watch('$select.open', function (isOpen, previousState) {
           if (isOpen !== previousState) {
-            $timeout(function () {
-              openFlagParse(scope, {isOpen: isOpen});
-              $select.onOpenCloseCallback(scope, {
-                isOpen: isOpen
-              });
+            openFlagParse(scope, {isOpen: isOpen});
+            $select.onOpenCloseCallback(scope, {
+              isOpen: isOpen
             });
           }
         });

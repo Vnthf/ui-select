@@ -1013,8 +1013,8 @@
       }]);
 
   uis.directive('uiSelect',
-    ['$document', 'uiSelectConfig', 'uiSelectMinErr', 'uisOffset', '$compile', '$parse', '$timeout',
-      function($document, uiSelectConfig, uiSelectMinErr, uisOffset, $compile, $parse, $timeout) {
+    ['$document', 'uiSelectConfig', 'uiSelectMinErr', 'uisOffset', '$compile', '$parse', '$timeout', '$window',
+      function($document, uiSelectConfig, uiSelectMinErr, uisOffset, $compile, $parse, $timeout, $window) {
 
         return {
           restrict: 'EA',
@@ -1252,9 +1252,22 @@
                 }
               });
 
+              //Debounce - avoid Frequent Events when append to body
+              var _winResizeDelayPromise;
+              function windowResizeHandler() {
+                $timeout.cancel(_winResizeDelayPromise);
+                if ($select.open) {
+                  _winResizeDelayPromise = $timeout(function () {
+                    resetDropdown();
+                    positionDropdown();
+                  }, 50, false);
+                }
+              }
+
               // Support for appending the select field to the body when its open
               var appendToBody = scope.$eval(attrs.appendToBody);
               if (appendToBody !== undefined ? appendToBody : uiSelectConfig.appendToBody) {
+                angular.element($window).on('resize', windowResizeHandler);
                 scope.$watch('$select.open', function(isOpen) {
                   if (isOpen) {
                     positionDropdown();
@@ -1267,6 +1280,7 @@
                 // it might stick around when the user routes away or the select field is otherwise removed
                 scope.$on('$destroy', function() {
                   resetDropdown();
+                  angular.element($window).off('resize', windowResizeHandler);
                 });
               }
 

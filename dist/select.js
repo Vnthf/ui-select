@@ -584,7 +584,8 @@
                 throw uiSelectMinErr('items', "Expected an array but got '{0}'.", items);
               } else {
                 // TODO 기본적으로 tagging을 추가함
-                var mockTag = angular.isFunction(ctrl.tagging.fct) && ctrl.tagging.fct(ctrl.search);
+                // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
+                var mockTag = angular.isFunction(ctrl.tagging.fct) && ctrl.tagging.fct(ctrl.search, ctrl.selected);
                 if (mockTag) {
                   items = angular.copy(items);
                   items.unshift(mockTag);
@@ -670,7 +671,8 @@
                   //TODO: tagging이 false일 때 예외처리 필요. activeIndex의 최소값은 0 (항상 select가 되도록), 없으면 노출 X
                   //클릭이벤트인지도 판단할 수 있도록 해야함.
                   if ( ctrl.activeIndex < 0 ) {
-                    item = ctrl.tagging.fct !== undefined ? ctrl.tagging.fct(ctrl.search) : ctrl.search;
+                    // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
+                    item = ctrl.tagging.fct !== undefined ? ctrl.tagging.fct(ctrl.search, ctrl.selected) : ctrl.search;
                     if (!item || angular.equals( ctrl.items[0], item ) ) {
                       return;
                     }
@@ -691,7 +693,8 @@
                     // create new item on the fly if we don't already have one;
                     // use tagging function if we have one
                     if ( ctrl.tagging.fct !== undefined && typeof item === 'string' ) {
-                      item = ctrl.tagging.fct(item);
+                      // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
+                      item = ctrl.tagging.fct(item, ctrl.selected);
                       if (!item) return;
                       // if item type is 'string', apply the tagging label
                     } else if ( typeof item === 'string' ) {
@@ -875,7 +878,8 @@
                     ctrl.searchInput.triggerHandler('tagged');
                     var newItem = ctrl.search.replace(KEY.MAP[e.keyCode],'').trim();
                     if ( ctrl.tagging.fct ) {
-                      newItem = ctrl.tagging.fct( newItem );
+                      // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
+                      newItem = ctrl.tagging.fct( newItem, ctrl.selected );
                       // 토큰으로 태그를 만들 때에도 customFilter를 적용하여 사용자 의도를 맞춤
                       angular.forEach(ctrl.selected, function (listItem) {
                         if (ctrl.customFilter($scope, { $item: newItem, $listItem: listItem})) {
@@ -942,7 +946,8 @@
               var items = data.split(separator || ctrl.taggingTokens.tokens[0]); // split by first token only
               if (items && items.length > 0) {
                 angular.forEach(items, function (item) {
-                  var newItem = ctrl.tagging.fct ? ctrl.tagging.fct(item) : item;
+                  // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
+                  var newItem = ctrl.tagging.fct ? ctrl.tagging.fct(item, ctrl.selected) : item;
                   if (newItem) {
                     ctrl.select(newItem, true);
                     data = null;
@@ -1768,14 +1773,16 @@
                 items = items.slice(1,items.length);
                 stashArr = stashArr.slice(1,stashArr.length);
               }
-              newItem = $select.tagging.fct($select.search);
+              // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
+              newItem = $select.tagging.fct($select.search, ctrl.selected);
               if(!newItem) {//TODO: taging false일때 item이 없으면 생성 안되도록
                 return;
               }
               // verify the new tag doesn't match the value of a possible selection choice or an already selected item.
               if (
                 stashArr.some(function (origItem) {
-                  return angular.equals(origItem, $select.tagging.fct($select.search));
+                  // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
+                  return angular.equals(origItem, $select.tagging.fct($select.search, ctrl.selected));
                 }) ||
                 $select.selected.some(function (origItem) {
                   return angular.equals(origItem, newItem);

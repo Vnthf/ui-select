@@ -341,8 +341,7 @@ uis.controller('uiSelectCtrl',
           // if taggingLabel is disabled, we pull from ctrl.search val
           if ( ctrl.taggingLabel === false ) {
             if ( ctrl.activeIndex < 0 ) {
-              // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-              item = ctrl.tagging.fct !== undefined ? ctrl.tagging.fct(ctrl.search, ctrl.selected) : ctrl.search;
+              item = ctrl.tagging.fct !== undefined ? ctrl.tagging.fct(ctrl.search) : ctrl.search;
               if (!item || angular.equals( ctrl.items[0], item ) ) {
                 return;
               }
@@ -361,8 +360,7 @@ uis.controller('uiSelectCtrl',
               // create new item on the fly if we don't already have one;
               // use tagging function if we have one
               if ( ctrl.tagging.fct !== undefined && typeof item === 'string' ) {
-                // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-                item = ctrl.tagging.fct(item, ctrl.selected);
+                item = ctrl.tagging.fct(item);
                 if (!item) return;
               // if item type is 'string', apply the tagging label
               } else if ( typeof item === 'string' ) {
@@ -542,8 +540,7 @@ uis.controller('uiSelectCtrl',
               ctrl.searchInput.triggerHandler('tagged');
               var newItem = ctrl.search.replace(KEY.MAP[e.keyCode],'').trim();
               if ( ctrl.tagging.fct ) {
-                // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-                newItem = ctrl.tagging.fct( newItem, ctrl.selected );
+                newItem = ctrl.tagging.fct( newItem );
               }
               if (newItem) ctrl.select(newItem, true);
             });
@@ -584,8 +581,7 @@ uis.controller('uiSelectCtrl',
         if (items && items.length > 0) {
         var oldsearch = ctrl.search;
           angular.forEach(items, function (item) {
-            // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-            var newItem = ctrl.tagging.fct ? ctrl.tagging.fct(item, ctrl.selected) : item;
+            var newItem = ctrl.tagging.fct ? ctrl.tagging.fct(item) : item;
             if (newItem) {
               ctrl.select(newItem, true);
             }

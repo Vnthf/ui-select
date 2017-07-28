@@ -411,7 +411,7 @@
             //reset activeIndex
             if (ctrl.selected && ctrl.items.length && !ctrl.multiple) {
               ctrl.activeIndex = _findIndex(ctrl.items, function(item){
-                return angular.equals(this, item);
+                return ctrl.isEqual(this, item);
               }, ctrl.selected);
             }
           }
@@ -540,33 +540,24 @@
             }, true);
           }
 
-          ctrl.refreshItems = function (data){
+          ctrl.refreshItems = function (data, callbackData){
             data = data || ctrl.parserResult.source($scope);
+            callbackData = callbackData || angular.noop;
+            // tagging을 통해 tag를 만들 수 있다면 해당 tag도 중복 확인이 필요
             var selectedItems = ctrl.selected;
             //TODO should implement for single mode removeSelected
             if (ctrl.isEmpty() || (angular.isArray(selectedItems) && !selectedItems.length) || !ctrl.removeSelected) {
-              if(ctrl.customFilter) {
-                data = data.filter(function(item) {
-                  return !ctrl.customFilter($scope, {
-                    $item: item,
-                    $listItem: {}
-                  });
-                });
-              }
-              ctrl.setItemsFn(data);
             }else{
               if ( data !== undefined ) {
-                var filteredItems = data.filter(function(i) {
+                data = data.filter(function(i) {
                   return selectedItems.every(function(selectedItem) {
-                    return !ctrl.customFilter ? !angular.equals(i, selectedItem) : !ctrl.customFilter($scope, {
-                      $item: i,
-                      $listItem: selectedItem
-                    });
+                    return !ctrl.isEqual(i, selectedItem);
                   });
                 });
-                ctrl.setItemsFn(filteredItems);
               }
             }
+            data = callbackData(data) || data;
+            ctrl.setItemsFn(data);
             if (ctrl.dropdownPosition === 'auto' || ctrl.dropdownPosition === 'up'){
               $scope.calculateDropdownPos();
             }
@@ -584,15 +575,23 @@
                 throw uiSelectMinErr('items', "Expected an array but got '{0}'.", items);
               } else {
                 // TODO 기본적으로 tagging을 추가함
-                // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-                var mockTag = angular.isFunction(ctrl.tagging.fct) && ctrl.tagging.fct(ctrl.search, ctrl.selected);
-                if (mockTag) {
-                  items = angular.copy(items);
-                  items.unshift(mockTag);
-                }
                 //Remove already selected items (ex: while searching)
                 //TODO Should add a test
-                ctrl.refreshItems(items);
+                ctrl.refreshItems(items, function (items) {
+                  var mockTag = angular.isFunction(ctrl.tagging.fct) && ctrl.tagging.fct(ctrl.search);
+                  if (mockTag &&
+                    ctrl.selected.every(function (selectedItem) {
+                      return !ctrl.isEqual(mockTag, selectedItem);
+                    }) &&
+                    items.every(function (listItem) {
+                      return !ctrl.isEqual(mockTag, listItem);
+                    })
+                  ) {
+                    items = angular.copy(items);
+                    items.unshift(mockTag);
+                    return items;
+                  }
+                });
                 ctrl.ngModel.$modelValue = null; //Force scope model value and ngModel value to be out of sync to re-run formatters
               }
             }
@@ -671,9 +670,8 @@
                   //TODO: tagging이 false일 때 예외처리 필요. activeIndex의 최소값은 0 (항상 select가 되도록), 없으면 노출 X
                   //클릭이벤트인지도 판단할 수 있도록 해야함.
                   if ( ctrl.activeIndex < 0 ) {
-                    // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-                    item = ctrl.tagging.fct !== undefined ? ctrl.tagging.fct(ctrl.search, ctrl.selected) : ctrl.search;
-                    if (!item || angular.equals( ctrl.items[0], item ) ) {
+                    item = ctrl.tagging.fct !== undefined ? ctrl.tagging.fct(ctrl.search) : ctrl.search;
+                    if (!item || ctrl.isEqual( ctrl.items[0], item ) ) {
                       return;
                     }
                   } else if (!item) {
@@ -693,8 +691,7 @@
                     // create new item on the fly if we don't already have one;
                     // use tagging function if we have one
                     if ( ctrl.tagging.fct !== undefined && typeof item === 'string' ) {
-                      // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-                      item = ctrl.tagging.fct(item, ctrl.selected);
+                      item = ctrl.tagging.fct(item);
                       if (!item) return;
                       // if item type is 'string', apply the tagging label
                     } else if ( typeof item === 'string' ) {
@@ -704,7 +701,7 @@
                   }
                 }
                 // search ctrl.selected for dupes potentially caused by tagging and return early if found
-                if ( ctrl.selected && angular.isArray(ctrl.selected) && ctrl.selected.filter( function (selection) { return angular.equals(selection, item); }).length > 0 ) {
+                if ( ctrl.selected && angular.isArray(ctrl.selected) && ctrl.selected.filter( function (selection) { return ctrl.isEqual(selection, item); }).length > 0 ) {
                   ctrl.close(skipFocusser);
                   return;
                 }
@@ -878,11 +875,9 @@
                     ctrl.searchInput.triggerHandler('tagged');
                     var newItem = ctrl.search.replace(KEY.MAP[e.keyCode],'').trim();
                     if ( ctrl.tagging.fct ) {
-                      // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-                      newItem = ctrl.tagging.fct( newItem, ctrl.selected );
-                      // 토큰으로 태그를 만들 때에도 customFilter를 적용하여 사용자 의도를 맞춤
+                      newItem = ctrl.tagging.fct( newItem );
                       angular.forEach(ctrl.selected, function (listItem) {
-                        if (ctrl.customFilter($scope, { $item: newItem, $listItem: listItem})) {
+                        if (ctrl.isEqual(newItem, listItem)) {
                           newItem = null;
                         }
                       });
@@ -946,8 +941,7 @@
               var items = data.split(separator || ctrl.taggingTokens.tokens[0]); // split by first token only
               if (items && items.length > 0) {
                 angular.forEach(items, function (item) {
-                  // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-                  var newItem = ctrl.tagging.fct ? ctrl.tagging.fct(item, ctrl.selected) : item;
+                  var newItem = ctrl.tagging.fct ? ctrl.tagging.fct(item) : item;
                   if (newItem) {
                     ctrl.select(newItem, true);
                     data = null;
@@ -955,7 +949,7 @@
                 });
                 $scope.$applyAsync(function () {
                   ctrl.search = data || EMPTY_SEARCH;
-                  if (_.isNumber(result.startPos)) {
+                  if (angular.isNumber(result.startPos)) {
                     $timeout(function () {
                       e.target.selectionStart = result.startPos;
                       e.target.selectionEnd = result.endPos;
@@ -1079,8 +1073,24 @@
               $select.onSelectCallback = $parse(attrs.onSelect);
               $select.onRemoveCallback = $parse(attrs.onRemove);
 
-              if(attrs.customFilter) {
-                $select.customFilter = $parse(attrs.customFilter);
+              // 기존의 tag가 같은지 비교를 angular.equals로만 비교했었으나 외부에서 주입할 수 있도록 수정
+              $select.isEqual = attrs.isEqualModel ?
+                _makeCustomEqualFunc(attrs.isEqualModel) :
+                function (value, other) {
+                  return angular.equals(value, other);
+                };
+
+              function _makeCustomEqualFunc(isEqualModelString) {
+                $select.hasCustomEqual = true;
+                var isEqualModelCallback = $parse(isEqualModelString);
+                // (가 있으면 콜백 함수로 가정
+                return isEqualModelString.indexOf('(') === -1 ?
+                  function (value, other) {
+                    return value[isEqualModelString] === other[isEqualModelString];
+                  } :
+                  function (value, other) {
+                    return isEqualModelCallback(scope.$parent, {value: value, other: other});
+                  };
               }
 
               //Limit the number of selections allowed
@@ -1589,7 +1599,7 @@
                   }
                 }
               }
-              if (angular.equals(result,value)){
+              if ($select.isEqual(result,value)){
                 resultMultiple.unshift(list[p]);
                 return true;
               }
@@ -1773,19 +1783,17 @@
                 items = items.slice(1,items.length);
                 stashArr = stashArr.slice(1,stashArr.length);
               }
-              // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-              newItem = $select.tagging.fct($select.search, $select.selected);
+              newItem = $select.tagging.fct($select.search);
               if(!newItem) {//TODO: taging false일때 item이 없으면 생성 안되도록
                 return;
               }
               // verify the new tag doesn't match the value of a possible selection choice or an already selected item.
               if (
                 stashArr.some(function (origItem) {
-                  // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-                  return angular.equals(origItem, $select.tagging.fct($select.search, $select.selected));
+                  return $select.isEqual(origItem, $select.tagging.fct($select.search));
                 }) ||
                 $select.selected.some(function (origItem) {
-                  return angular.equals(origItem, newItem);
+                  return $select.isEqual(origItem, newItem);
                 })
               ) {
                 scope.$applyAsync(function () {
@@ -1882,7 +1890,7 @@
                 if (angular.isObject(mockObj)) {
                   mockObj.isTag = true;
                 }
-                if ( angular.equals(mockObj, needle) ) {
+                if ( $select.isEqual(mockObj, needle) ) {
                   dupeIndex = i;
                 }
               }
@@ -2206,7 +2214,7 @@
 
                     var item = JSON.parse(event.dataTransfer.getData(DRAG_ITEM_TYPE));
                     for (var i = 0; i < $select.selected.length; i++) {
-                        if($select.customFilter(scope, {$item: item, $listItem: $select.selected[i]})) {
+                        if($select.isEqual(item, $select.selected[i])) {
                             return;
                         }
                     }

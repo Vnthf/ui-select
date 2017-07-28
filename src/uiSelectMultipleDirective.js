@@ -305,7 +305,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr','$timeout', function(uiSelec
               stashArr = stashArr.slice(1,stashArr.length);
             }
             // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-            newItem = $select.tagging.fct($select.search, ctrl.selected);
+            newItem = $select.tagging.fct($select.search, $select.selected);
             // verify the new tag doesn't match the value of a possible selection choice or an already selected item.
             if (
               stashArr.some(function (origItem) {

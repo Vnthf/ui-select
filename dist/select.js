@@ -1774,7 +1774,7 @@
                 stashArr = stashArr.slice(1,stashArr.length);
               }
               // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-              newItem = $select.tagging.fct($select.search, ctrl.selected);
+              newItem = $select.tagging.fct($select.search, $select.selected);
               if(!newItem) {//TODO: taging false일때 item이 없으면 생성 안되도록
                 return;
               }
@@ -1782,7 +1782,7 @@
               if (
                 stashArr.some(function (origItem) {
                   // 현재 선택된 리스트를 추가로 넘겨서 중복확인에 사용
-                  return angular.equals(origItem, $select.tagging.fct($select.search, ctrl.selected));
+                  return angular.equals(origItem, $select.tagging.fct($select.search, $select.selected));
                 }) ||
                 $select.selected.some(function (origItem) {
                   return angular.equals(origItem, newItem);

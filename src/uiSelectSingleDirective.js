@@ -46,7 +46,7 @@ uis.directive('uiSelectSingle', ['$timeout','$compile', function($timeout, $comp
       });
 
       ngModel.$render = function() {
-        $select.selected = ngModel.$viewValue;
+        $select.selected = ngModel.$modelValue;
       };
 
       scope.$on('uis:select', function (event, item) {

@@ -551,7 +551,7 @@
               if ( data !== undefined ) {
                 data = data.filter(function(i) {
                   return selectedItems.every(function(selectedItem) {
-                    return !ctrl.isEqual(i, selectedItem);
+                    return !ctrl.customFilter(i, selectedItem);
                   });
                 });
               }
@@ -1089,6 +1089,16 @@
                   function (value, other) {
                     return isEqualModelCallback(scope.$parent, {value: value, other: other});
                   };
+              }
+
+              $select.customFilter = attrs.customFilter ?
+                _makeCustomFilter() : $select.isEqual;
+
+              function _makeCustomFilter() {
+                var customFilterCallback = $parse(attrs.customFilter);
+                return function (value, other) {
+                  return customFilterCallback(scope.$parent, {value: value, other: other});
+                };
               }
 
               //Limit the number of selections allowed

@@ -2205,8 +2205,7 @@
                     isDragging = false;
                     event.currentTarget.classList.remove(DROPPABLE_CLASS);
                     if(uiSelectDragFactory.onAllowDrop) {
-                        $select.selected.splice($(this).index(), 1);
-                        scope.$selectMultiple.updateModel();
+                        scope.$selectMultiple.removeChoice($(this).index());
                     }
                 });
 
@@ -2227,8 +2226,7 @@
                         }
                     }
 
-                    $select.selected.push(item);
-                    scope.$selectMultiple.updateModel();
+                    $select.select(item);
                 });
 
                 element.on('dragenter', function(event) {

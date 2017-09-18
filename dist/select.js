@@ -229,7 +229,7 @@
                 .attr('ng-if', '$select.open'); //Prevent unnecessary watches when dropdown is closed
               if ($window.document.addEventListener) {  //crude way to exclude IE8, specifically, which also cannot capture events
                 // grouping에서 오동작을 막기위해 itemIndex를 activeIndex로 설정
-                choices.attr('ng-mouseenter', '$select.activeIndex=itemIndex')
+                choices.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)')
                   .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',$select.skipFocusser,$event)')
                   .attr('ng-init', 'itemIndex=$select.getItemIndex(this)')
                   .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
@@ -242,7 +242,7 @@
               rowsInner.attr('uis-transclude-append', ''); //Adding uisTranscludeAppend directive to row element after choices element has ngRepeat
               if (!$window.document.addEventListener) {  //crude way to target IE8, specifically, which also cannot capture events - so event bindings must be here
                 // grouping에서 오동작을 막기위해 itemIndex를 activeIndex로 설정
-                rowsInner.attr('ng-mouseenter', '$select.activeIndex=itemIndex')
+                rowsInner.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)')
                   .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',$select.skipFocusser,$event)')
                   .attr('ng-init', 'itemIndex=$select.getItemIndex(this)')
                   .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
@@ -763,6 +763,12 @@
 
         };
 
+        ctrl.onMouseEnter = function (itemIndex) {
+          if (!ctrl.keyDownMode) {
+            ctrl.activeIndex = itemIndex;
+          }
+        };
+
         ctrl.setFocus = function(){
           if (!ctrl.focus) ctrl.focusInput[0].focus();
         };
@@ -836,11 +842,17 @@
           switch (key) {
             case KEY.DOWN:
               if (!ctrl.open && ctrl.multiple) ctrl.activate(false, true); //In case its the search input in 'multiple' mode
-              else if (ctrl.activeIndex < ctrl.items.length - 1) { ctrl.activeIndex++; }
+              else if (ctrl.activeIndex < ctrl.items.length - 1) {
+                _enableKeyDownMode();
+                ctrl.activeIndex++;
+              }
               break;
             case KEY.UP:
               if (!ctrl.open && ctrl.multiple) ctrl.activate(false, true); //In case its the search input in 'multiple' mode
-              else if (ctrl.activeIndex > 0 || (ctrl.search.length === 0 && ctrl.tagging.isActivated && ctrl.activeIndex > -1)) { ctrl.activeIndex--; }
+              else if (ctrl.activeIndex > 0 || (ctrl.search.length === 0 && ctrl.tagging.isActivated && ctrl.activeIndex > -1)) {
+                _enableKeyDownMode();
+                ctrl.activeIndex--;
+              }
               break;
             case KEY.TAB:
               if (!ctrl.multiple || ctrl.open) ctrl.select(ctrl.items[ctrl.activeIndex], true);
@@ -859,6 +871,15 @@
               processed = false;
           }
           return processed;
+        }
+
+        var timeoutInstance = null;
+        function _enableKeyDownMode() {
+          $timeout.cancel(timeoutInstance);
+          ctrl.keyDownMode = true;
+          timeoutInstance = $timeout(function () {
+            ctrl.keyDownMode = false;
+          }, 300, false);
         }
 
         // Bind to keyboard shortcuts

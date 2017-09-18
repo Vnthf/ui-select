@@ -228,16 +228,25 @@
               choices.attr('ng-repeat', $select.parserResult.repeatExpression(groupByExp))
                 .attr('ng-if', '$select.open'); //Prevent unnecessary watches when dropdown is closed
               if ($window.document.addEventListener) {  //crude way to exclude IE8, specifically, which also cannot capture events
-                choices.attr('ng-mouseenter', '$select.setActiveItem('+$select.parserResult.itemName +')')
-                  .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',$select.skipFocusser,$event)');
+                // grouping에서 오동작을 막기위해 itemIndex를 activeIndex로 설정
+                choices.attr('ng-mouseenter', '$select.activeIndex=itemIndex')
+                  .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',$select.skipFocusser,$event)')
+                  .attr('ng-init', 'itemIndex=$select.getItemIndex(this)')
+                  .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
+
+                choices.children().attr('ng-class', '{\'prev-selected\': $select.isPrevActive(itemIndex)}');
               }
 
               var rowsInner = element.querySelectorAll('.ui-select-choices-row-inner');
               if (rowsInner.length !== 1) throw uiSelectMinErr('rows', "Expected 1 .ui-select-choices-row-inner but got '{0}'.", rowsInner.length);
               rowsInner.attr('uis-transclude-append', ''); //Adding uisTranscludeAppend directive to row element after choices element has ngRepeat
               if (!$window.document.addEventListener) {  //crude way to target IE8, specifically, which also cannot capture events - so event bindings must be here
-                rowsInner.attr('ng-mouseenter', '$select.setActiveItem('+$select.parserResult.itemName +')')
-                  .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',$select.skipFocusser,$event)');
+                // grouping에서 오동작을 막기위해 itemIndex를 activeIndex로 설정
+                rowsInner.attr('ng-mouseenter', '$select.activeIndex=itemIndex')
+                  .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',$select.skipFocusser,$event)')
+                  .attr('ng-init', 'itemIndex=$select.getItemIndex(this)')
+                  .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
+                rowsInner.children().attr('ng-class', '{\'prev-selected\': $select.isPrevActive(itemIndex)}');
               }
 
               $compile(element, transcludeFn)(scope); //Passing current transcludeFn to be able to append elements correctly from uisTranscludeAppend
@@ -621,6 +630,17 @@
           }
         };
 
+        ctrl.getItemIndex = function (itemScope) {
+          if (!ctrl.open) {
+            return false;
+          }
+          return ctrl.items.indexOf(itemScope[ctrl.itemProperty]);
+        };
+
+        ctrl.isPrevActive = function (itemIndex) {
+          return ctrl.prevActiveIndex === itemIndex;
+        };
+
         ctrl.isActive = function(itemScope) {
           if ( !ctrl.open ) {
             return false;
@@ -762,6 +782,8 @@
             e.preventDefault();
             e.stopPropagation();
           } else {
+            _resetSearchInput();
+            ctrl.prevActiveIndex = ctrl.activeIndex;
             ctrl.activate();
           }
         };
@@ -790,7 +812,7 @@
               if (containerWidth === 0) {
                 return false;
               }
-              var inputWidth = containerWidth - input.offsetLeft - 10;
+              var inputWidth = containerWidth - input.offsetLeft - (ctrl.multiple ? 10 : 0);
               if (inputWidth < 50) inputWidth = containerWidth;
               ctrl.searchInput.css('width', inputWidth+'px');
               return true;

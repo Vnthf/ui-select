@@ -552,19 +552,6 @@
           ctrl.refreshItems = function (data, callbackData){
             data = data || ctrl.parserResult.source($scope);
             callbackData = callbackData || angular.noop;
-            // tagging을 통해 tag를 만들 수 있다면 해당 tag도 중복 확인이 필요
-            var selectedItems = ctrl.selected;
-            //TODO should implement for single mode removeSelected
-            if (ctrl.isEmpty() || (angular.isArray(selectedItems) && !selectedItems.length) || !ctrl.removeSelected) {
-            }else{
-              if ( data !== undefined ) {
-                data = data.filter(function(i) {
-                  return selectedItems.every(function(selectedItem) {
-                    return !ctrl.customFilter(i, selectedItem);
-                  });
-                });
-              }
-            }
             data = callbackData(data) || data;
             ctrl.setItemsFn(data);
             if (ctrl.dropdownPosition === 'auto' || ctrl.dropdownPosition === 'up'){
@@ -589,9 +576,6 @@
                 ctrl.refreshItems(items, function (items) {
                   var mockTag = angular.isFunction(ctrl.tagging.fct) && ctrl.tagging.fct(ctrl.search);
                   if (mockTag &&
-                    ctrl.selected.every(function (selectedItem) {
-                      return !ctrl.isEqual(mockTag, selectedItem);
-                    }) &&
                     items.every(function (listItem) {
                       return !ctrl.isEqual(mockTag, listItem);
                     })
@@ -720,10 +704,11 @@
                     }
                   }
                 }
-                // search ctrl.selected for dupes potentially caused by tagging and return early if found
-                if ( ctrl.selected && angular.isArray(ctrl.selected) && ctrl.selected.filter( function (selection) { return ctrl.isEqual(selection, item); }).length > 0 ) {
-                  ctrl.close(skipFocusser);
-                  return;
+                if ( ctrl.selected && angular.isArray(ctrl.selected)) {
+                  var dupIndex = ctrl.selected.findIndex( function (selection) { return ctrl.isEqual(selection, item); });
+                  if (dupIndex > -1) {
+                    ctrl.selected.splice(dupIndex, 1);
+                  }
                 }
               }
 
@@ -919,11 +904,6 @@
                     var newItem = ctrl.search.replace(KEY.MAP[e.keyCode],'').trim();
                     if ( ctrl.tagging.fct ) {
                       newItem = ctrl.tagging.fct( newItem );
-                      angular.forEach(ctrl.selected, function (listItem) {
-                        if (ctrl.isEqual(newItem, listItem)) {
-                          newItem = null;
-                        }
-                      });
                     }
                     if (newItem) ctrl.select(newItem, true);
                   });
@@ -1132,16 +1112,6 @@
                   function (value, other) {
                     return isEqualModelCallback(scope.$parent, {value: value, other: other});
                   };
-              }
-
-              $select.customFilter = attrs.customFilter ?
-                _makeCustomFilter() : $select.isEqual;
-
-              function _makeCustomFilter() {
-                var customFilterCallback = $parse(attrs.customFilter);
-                return function (value, other) {
-                  return customFilterCallback(scope.$parent, {value: value, other: other});
-                };
               }
 
               //Limit the number of selections allowed
@@ -1842,9 +1812,6 @@
               if (
                 stashArr.some(function (origItem) {
                   return $select.isEqual(origItem, $select.tagging.fct($select.search));
-                }) ||
-                $select.selected.some(function (origItem) {
-                  return $select.isEqual(origItem, newItem);
                 })
               ) {
                 scope.$applyAsync(function () {

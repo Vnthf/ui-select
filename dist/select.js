@@ -704,11 +704,12 @@
                     }
                   }
                 }
-                if ( ctrl.selected && angular.isArray(ctrl.selected)) {
-                  var dupIndex = ctrl.selected.findIndex( function (selection) { return ctrl.isEqual(selection, item); });
-                  if (dupIndex > -1) {
-                    ctrl.selected.splice(dupIndex, 1);
-                  }
+              }
+
+              if ( ctrl.selected && angular.isArray(ctrl.selected)) {
+                var dupIndex = ctrl.selected.findIndex( function (selection) { return ctrl.isEqual(selection, item); });
+                if (dupIndex > -1) {
+                  ctrl.selected.splice(dupIndex, 1);
                 }
               }
 

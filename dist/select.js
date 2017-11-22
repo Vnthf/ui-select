@@ -970,7 +970,7 @@
                 }
               }
               if (items.length === 0) {
-                items = [data];
+                ctrl.search = data || EMPTY_SEARCH;
               }
               var oldsearch = ctrl.search;
               angular.forEach(items, function (item) {
@@ -987,6 +987,8 @@
               ctrl.search = EMPTY_SEARCH;
               e.preventDefault();
               e.stopPropagation();
+            } else {
+              ctrl.search = data || EMPTY_SEARCH;
             }
           }
         });

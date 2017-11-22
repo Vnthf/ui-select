@@ -990,6 +990,7 @@
             } else {
               ctrl.search = data || EMPTY_SEARCH;
             }
+            $scope.$applyAsync();
           }
         });
 

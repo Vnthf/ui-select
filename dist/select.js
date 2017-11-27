@@ -961,14 +961,11 @@
           if (data && data.length > 0) {
             // If tagging try to split by tokens and add items
             if (ctrl.taggingTokens.isActivated) {
-              var items = [];
-              for (var i = 0; i < ctrl.taggingTokens.tokens.length; i++) {  // split by first token that is contained in data
-                var separator = KEY.toSeparator(ctrl.taggingTokens.tokens[i]) || ctrl.taggingTokens.tokens[i];
-                if (data.indexOf(separator) > -1) {
-                  items = data.split(separator);
-                  break;  // only split by one token
-                }
+              var separators = [];
+              for (var i = 0, len = ctrl.taggingTokens.tokens.length; i < len; i++) {  // split by first token that is contained in data
+                separators.push(KEY.toSeparator(ctrl.taggingTokens.tokens[i]) || ctrl.taggingTokens.tokens[i]);
               }
+              var items = data.split(new RegExp(separators.join('|'), 'g'));
               if (items.length === 0) {
                 ctrl.search = data || EMPTY_SEARCH;
               }

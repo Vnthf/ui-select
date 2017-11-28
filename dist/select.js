@@ -8,6 +8,7 @@
 
 (function () {
   "use strict";
+  var isMacOS = /\bMac OS\b/.test(window.navigator.userAgent);
   var KEY = {
     TAB: 9,
     ENTER: 13,
@@ -27,6 +28,7 @@
     BACKSPACE: 8,
     DELETE: 46,
     COMMAND: 91,
+    A: 65,
 
     MAP: { 91 : "COMMAND", 8 : "BACKSPACE" , 9 : "TAB" , 13 : "ENTER" , 16 : "SHIFT" , 17 : "CTRL" , 18 : "ALT" , 19 : "PAUSEBREAK" , 20 : "CAPSLOCK" , 27 : "ESC" , 32 : "SPACE" , 33 : "PAGE_UP", 34 : "PAGE_DOWN" , 35 : "END" , 36 : "HOME" , 37 : "LEFT" , 38 : "UP" , 39 : "RIGHT" , 40 : "DOWN" , 43 : "+" , 44 : "PRINTSCREEN" , 45 : "INSERT" , 46 : "DELETE", 48 : "0" , 49 : "1" , 50 : "2" , 51 : "3" , 52 : "4" , 53 : "5" , 54 : "6" , 55 : "7" , 56 : "8" , 57 : "9" , 59 : ";", 61 : "=" , 65 : "A" , 66 : "B" , 67 : "C" , 68 : "D" , 69 : "E" , 70 : "F" , 71 : "G" , 72 : "H" , 73 : "I" , 74 : "J" , 75 : "K" , 76 : "L", 77 : "M" , 78 : "N" , 79 : "O" , 80 : "P" , 81 : "Q" , 82 : "R" , 83 : "S" , 84 : "T" , 85 : "U" , 86 : "V" , 87 : "W" , 88 : "X" , 89 : "Y" , 90 : "Z", 96 : "0" , 97 : "1" , 98 : "2" , 99 : "3" , 100 : "4" , 101 : "5" , 102 : "6" , 103 : "7" , 104 : "8" , 105 : "9", 106 : "*" , 107 : "+" , 109 : "-" , 110 : "." , 111 : "/", 112 : "F1" , 113 : "F2" , 114 : "F3" , 115 : "F4" , 116 : "F5" , 117 : "F6" , 118 : "F7" , 119 : "F8" , 120 : "F9" , 121 : "F10" , 122 : "F11" , 123 : "F12", 144 : "NUMLOCK" , 145 : "SCROLLLOCK" , 186 : ";" , 187 : "=" , 188 : "," , 189 : "-" , 190 : "." , 191 : "/" , 192 : "`" , 219 : "[" , 220 : "\\" , 221 : "]" , 222 : "'"
     },
@@ -54,6 +56,9 @@
     },
     isHorizontalMovement: function (k){
       return ~[KEY.LEFT,KEY.RIGHT,KEY.BACKSPACE,KEY.DELETE].indexOf(k);
+    },
+    isSelectAll: function (event, k) {
+      return (isMacOS ? event.metaKey : event.ctrlKey) && k === KEY.A;
     },
     toSeparator: function (k) {
       var sep = {ENTER:"\n",TAB:"\t",SPACE:" "}[k];
@@ -1531,6 +1536,14 @@
 
         // Remove item from multiple select
         ctrl.removeChoice = function(index){
+          if (index === 'all') {
+            $select.selected.length = 0;
+            ctrl.activeMatchIndex = -1;
+            $select.sizeSearchInput();
+            ctrl.updateModel();
+            $select.onRemoveCallback($scope, {});
+            return;
+          }
 
           var removedChoice = $select.selected[index];
 
@@ -1560,6 +1573,10 @@
           //Refactor single?
           if($select.selected && $select.selected.length) return;
           return $select.placeholder;
+        };
+
+        ctrl.isActiveIndex = function (index){
+            return ctrl.activeMatchIndex === 'all' || ctrl.activeMatchIndex === index;
         };
 
 
@@ -1683,12 +1700,13 @@
         });
 
         $select.searchInput.on('keydown', function(e) {
-          var key = e.which;
+          var key = e.which,
+            isSelectAll = KEY.isSelectAll(e, key);
           scope.$apply(function() {
             var processed = false;
             // var tagged = false; //Checkme
-            if(KEY.isHorizontalMovement(key)){
-              processed = _handleMatchSelection(key);
+            if(KEY.isHorizontalMovement(key) || isSelectAll){
+              processed = _handleMatchSelection(key, isSelectAll);
             }
             if (processed  && key != KEY.TAB) {
               //TODO Check si el tab selecciona aun correctamente
@@ -1704,22 +1722,27 @@
           else return el.value.length;
         }
         // Handles selected options in "multiple" mode
-        function _handleMatchSelection(key){
+        function _handleMatchSelection(key, isSelectAll){
           var caretPosition = _getCaretPosition($select.searchInput[0]),
             length = $select.selected.length,
-          // none  = -1,
+            // none  = -1,
             first = 0,
             last  = length-1,
             curr  = $selectMultiple.activeMatchIndex,
-            next  = $selectMultiple.activeMatchIndex+1,
-            prev  = $selectMultiple.activeMatchIndex-1,
-            newIndex = curr;
+            next  = $selectMultiple.activeMatchIndex === 'all' ? last : curr + 1,
+            prev  = $selectMultiple.activeMatchIndex === 'all' ? first : curr -1,
+            newIndex = curr,
+            searchLength = $select.search.length;
 
-          if(caretPosition > 0 || ($select.search.length && key == KEY.RIGHT)) return false;
+          if(caretPosition > 0 || (searchLength && key == KEY.RIGHT) || (isSelectAll && searchLength)) return false;
 
           $select.close();
 
           function getNewActiveMatchIndex(){
+            if (isSelectAll) {
+              return 'all';
+            }
+
             switch(key){
               case KEY.LEFT:
                 // Select previous/first item
@@ -1729,7 +1752,7 @@
                 break;
               case KEY.RIGHT:
                 // Open drop-down
-                if(!~$selectMultiple.activeMatchIndex || curr === last){
+                if(!~$selectMultiple.activeMatchIndex || curr === last || curr === 'all'){
                   $select.activate();
                   return false;
                 }
@@ -1748,8 +1771,8 @@
               case KEY.DELETE:
                 // Remove selected item and select next item
                 if(~$selectMultiple.activeMatchIndex){
-                  $selectMultiple.removeChoice($selectMultiple.activeMatchIndex);
-                  return curr;
+                  $selectMultiple.removeChoice(curr);
+                  return curr === 'all' ? last : curr;
                 }
                 else return false;
             }
@@ -1758,7 +1781,7 @@
           newIndex = getNewActiveMatchIndex();
 
           if(!$select.selected.length || newIndex === false) $selectMultiple.activeMatchIndex = -1;
-          else $selectMultiple.activeMatchIndex = Math.min(last,Math.max(first,newIndex));
+          else $selectMultiple.activeMatchIndex = newIndex === 'all' ? newIndex : Math.min(last,Math.max(first,newIndex));
 
           return true;
         }

@@ -122,7 +122,7 @@
       appendToBody: false
     })
 
-// See Rename minErr and make it accessible from outside https://github.com/angular/angular.js/issues/6913
+    // See Rename minErr and make it accessible from outside https://github.com/angular/angular.js/issues/6913
     .service('uiSelectMinErr', function() {
       var minErr = angular.$$minErr('ui.select');
       return function() {
@@ -132,7 +132,7 @@
       };
     })
 
-// Recreates old behavior of ng-transclude. Used internally.
+    // Recreates old behavior of ng-transclude. Used internally.
     .directive('uisTranscludeAppend', function () {
       return {
         link: function (scope, element, attrs, ctrl, transclude) {
@@ -144,12 +144,12 @@
       };
     })
 
-  /**
-   * Highlights text that matches $select.search.
-   *
-   * Taken from AngularUI Bootstrap Typeahead
-   * See https://github.com/angular-ui/bootstrap/blob/0.10.0/src/typeahead/typeahead.js#L340
-   */
+    /**
+     * Highlights text that matches $select.search.
+     *
+     * Taken from AngularUI Bootstrap Typeahead
+     * See https://github.com/angular-ui/bootstrap/blob/0.10.0/src/typeahead/typeahead.js#L340
+     */
     .filter('highlight', function() {
       function escapeRegexp(queryToEscape) {
         return ('' + queryToEscape).replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1');
@@ -160,26 +160,26 @@
       };
     })
 
-  /**
-   * A read-only equivalent of jQuery's offset function: http://api.jquery.com/offset/
-   *
-   * Taken from AngularUI Bootstrap Position:
-   * See https://github.com/angular-ui/bootstrap/blob/master/src/position/position.js#L70
-   */
+    /**
+     * A read-only equivalent of jQuery's offset function: http://api.jquery.com/offset/
+     *
+     * Taken from AngularUI Bootstrap Position:
+     * See https://github.com/angular-ui/bootstrap/blob/master/src/position/position.js#L70
+     */
     .factory('uisOffset',
-    ['$document', '$window',
-      function ($document, $window) {
+      ['$document', '$window',
+        function ($document, $window) {
 
-        return function(element) {
-          var boundingClientRect = element[0].getBoundingClientRect();
-          return {
-            width: boundingClientRect.width || element.prop('offsetWidth'),
-            height: boundingClientRect.height || element.prop('offsetHeight'),
-            top: boundingClientRect.top + ($window.pageYOffset || $document[0].documentElement.scrollTop),
-            left: boundingClientRect.left + ($window.pageXOffset || $document[0].documentElement.scrollLeft)
+          return function(element) {
+            var boundingClientRect = element[0].getBoundingClientRect();
+            return {
+              width: boundingClientRect.width || element.prop('offsetWidth'),
+              height: boundingClientRect.height || element.prop('offsetHeight'),
+              top: boundingClientRect.top + ($window.pageYOffset || $document[0].documentElement.scrollTop),
+              left: boundingClientRect.left + ($window.pageXOffset || $document[0].documentElement.scrollLeft)
+            };
           };
-        };
-      }]);
+        }]);
 
   uis.directive('uiSelectChoices',
     ['uiSelectConfig', 'uisRepeatParser', 'uiSelectMinErr', '$compile', '$window',
@@ -376,6 +376,7 @@
         ctrl.multiple = undefined; // Initialized inside uiSelect directive link function
         ctrl.disableChoiceExpression = undefined; // Initialized inside uiSelectChoices directive link function
         ctrl.tagging = {isActivated: false, fct: undefined};
+        ctrl.taggingInvalid = {isActivated: false, value: undefined};
         ctrl.taggingTokens = {isActivated: false, tokens: undefined};
         ctrl.lockChoiceExpression = undefined; // Initialized inside uiSelectMatch directive link function
         ctrl.clickTriggeredSelect = false;
@@ -419,8 +420,15 @@
         }
 
         // Most of the time the user does not want to empty the search input when in typeahead mode
-        function _resetSearchInput() {
+        function _resetSearchInput(skipSelect) {
           if (ctrl.resetSearchInput || (ctrl.resetSearchInput === undefined && uiSelectConfig.resetSearchInput)) {
+            if (!skipSelect && ctrl.multiple && ctrl.tagging.isActivated && ctrl.search !== EMPTY_SEARCH) {
+              var newItem = _parseStringToTagMap(ctrl.search);
+              ctrl.search = EMPTY_SEARCH;
+              // select안에 _resetSearchInput을 호출하는 로직이 있어서 무한루프에 빠지지 않기위해 수정
+              ctrl.select(newItem);
+              return;
+            }
             ctrl.search = EMPTY_SEARCH;
             //reset activeIndex
             if (ctrl.selected && ctrl.items.length && !ctrl.multiple) {
@@ -488,8 +496,8 @@
 
         ctrl.findGroupByName = function(name) {
           return ctrl.groups && ctrl.groups.filter(function(group) {
-              return group.name === name;
-            })[0];
+            return group.name === name;
+          })[0];
         };
 
         ctrl.parseRepeatAttr = function(repeatAttr, groupByExp, groupFilterExp) {
@@ -577,19 +585,20 @@
               } else {
                 // TODO 기본적으로 tagging을 추가함
                 //Remove already selected items (ex: while searching)
-                //TODO Should add a test
-                ctrl.refreshItems(items, function (items) {
-                  var mockTag = angular.isFunction(ctrl.tagging.fct) && ctrl.tagging.fct(ctrl.search);
-                  if (mockTag &&
-                    items.every(function (listItem) {
-                      return !ctrl.isEqual(mockTag, listItem);
-                    })
-                  ) {
-                    items = angular.copy(items);
-                    items.unshift(mockTag);
-                    return items;
-                  }
-                });
+                //TODO newItem 추가 관련 코드 제거
+                // ctrl.refreshItems(items, function (items) {
+                //   var mockTag = angular.isFunction(ctrl.tagging.fct) && ctrl.tagging.fct(ctrl.search);
+                //   if (mockTag &&
+                //     items.every(function (listItem) {
+                //       return !ctrl.isEqual(mockTag, listItem);
+                //     })
+                //   ) {
+                //     items = angular.copy(items);
+                //     items.unshift(mockTag);
+                //     return items;
+                //   }
+                // });
+                ctrl.refreshItems(items);
                 ctrl.ngModel.$modelValue = null; //Force scope model value and ngModel value to be out of sync to re-run formatters
               }
             }
@@ -665,9 +674,22 @@
           return isDisabled;
         };
 
+        function _isArrayItem(item) {
+          return angular.isArray(item) && item.length > 0;
+        }
+
+        function _selectArrayItem(itemList, skipFocusser, $event) {
+          angular.forEach(itemList, function (item) {
+            item && ctrl.select(item, skipFocusser, $event);
+          });
+        }
 
         // When the user selects an item with ENTER or clicks the dropdown
         ctrl.select = function(item, skipFocusser, $event) {
+          if (_isArrayItem(item)) {
+            _selectArrayItem(item, skipFocusser, $event);
+            return;
+          }
           if (item === undefined || !item._uiSelectChoiceDisabled) {
 
             if ( ! ctrl.items && ! ctrl.search && ! ctrl.tagging.isActivated) return;
@@ -680,7 +702,10 @@
                   //클릭이벤트인지도 판단할 수 있도록 해야함.
                   if ( ctrl.activeIndex < 0 ) {
                     item = ctrl.tagging.fct !== undefined ? ctrl.tagging.fct(ctrl.search) : ctrl.search;
-                    if (!item || ctrl.isEqual( ctrl.items[0], item ) ) {
+                    if (_isArrayItem(item)) {
+                      _selectArrayItem(item, skipFocusser, $event);
+                      return;
+                    } else if (!item || ctrl.isEqual( ctrl.items[0], item ) ) {
                       return;
                     }
                   } else if (!item) {
@@ -701,7 +726,10 @@
                     // use tagging function if we have one
                     if ( ctrl.tagging.fct !== undefined && typeof item === 'string' ) {
                       item = ctrl.tagging.fct(item);
-                      if (!item) return;
+                      if (_isArrayItem(item)) {
+                        _selectArrayItem(item, skipFocusser, $event);
+                        return;
+                      } else if (!item) return;
                       // if item type is 'string', apply the tagging label
                     } else if ( typeof item === 'string' ) {
                       // trim the trailing space
@@ -734,7 +762,8 @@
               });
 
               if (ctrl.closeOnSelect) {
-                ctrl.close(skipFocusser);
+                // select무한이 반복하는 현상 방어
+                ctrl.close({skipFocusser: skipFocusser, skipSelect: true});
               }
               if ($event && $event.type === 'click') {
                 ctrl.clickTriggeredSelect = true;
@@ -744,13 +773,15 @@
         };
 
         // Closes the dropdown
-        ctrl.close = function(skipFocusser) {
+        // option: skipFocusser, skipSelect, skipResetInput
+        ctrl.close = function(option) {
           if (!ctrl.open) return;
+          option = option || {};
           if (ctrl.ngModel && ctrl.ngModel.$setTouched) ctrl.ngModel.$setTouched();
-          _resetSearchInput();
+          !option.skipResetInput && _resetSearchInput(option.skipSelect);
           ctrl.open = false;
 
-          $scope.$broadcast('uis:close', skipFocusser);
+          $scope.$broadcast('uis:close', option.skipFocusser);
 
         };
 
@@ -828,7 +859,40 @@
           }, 0, false);
         };
 
-        function _handleDropDownSelection(key) {
+        function _convertTokens() {
+          if (!ctrl.taggingTokens.isActivated) {
+            return [];
+          }
+          var tokens = [];
+          for (var i = 0, len = ctrl.taggingTokens.tokens.length; i < len; i++) {
+            tokens.push(KEY.toSeparator(ctrl.taggingTokens.tokens[i]) || ctrl.taggingTokens.tokens[i]);
+          }
+          return tokens;
+        }
+
+        function _makeTagListUsingFct(stringTokens) {
+          var items = [];
+          angular.forEach(stringTokens, function (stringToken) {
+            var newItem = ctrl.tagging.fct(stringToken);
+            if (_isArrayItem(newItem)) {
+              items = items.concat(newItem);
+            } else if (newItem) {
+              items.push(newItem);
+            }
+          });
+          return items;
+        }
+
+        function _parseStringToTagMap(str) {
+          if (ctrl.multiple && ctrl.tagging.isActivated && ctrl.tagging.fct) {
+            var tokens = _convertTokens(),
+              stringTokens = tokens.length > 0 ? str.split(new RegExp(tokens.join('|'), 'g')) : str;
+            return _makeTagListUsingFct(stringTokens);
+          }
+          return [];
+        }
+
+        function _handleSelection(key) {
           var processed = true;
           switch (key) {
             case KEY.DOWN:
@@ -846,17 +910,19 @@
               }
               break;
             case KEY.TAB:
-              if (!ctrl.multiple || ctrl.open) ctrl.select(ctrl.items[ctrl.activeIndex], true);
+              if (ctrl.items.length > 0 && (!ctrl.multiple || ctrl.open)) {
+                ctrl.select(ctrl.items[ctrl.activeIndex], true);
+              }
               break;
             case KEY.ENTER:
               if(ctrl.open && (ctrl.tagging.isActivated || ctrl.activeIndex >= 0)){
-                ctrl.select(ctrl.items[ctrl.activeIndex], ctrl.skipFocusser); // Make sure at least one dropdown item is highlighted before adding if not in tagging mode
+                ctrl.items.length > 0 && ctrl.select(ctrl.items[ctrl.activeIndex], ctrl.skipFocusser); // Make sure at least one dropdown item is highlighted before adding if not in tagging mode
               } else {
                 ctrl.activate(false, true); //In case its the search input in 'multiple' mode
               }
               break;
             case KEY.ESC:
-              ctrl.close();
+              (ctrl.open && ctrl.items.length > 0) ? ctrl.close({skipResetInput: ctrl.multiple}) : _resetSearchInput(true);
               break;
             default:
               processed = false;
@@ -893,7 +959,7 @@
             var tagged = false;
 
             if (ctrl.items.length > 0 || ctrl.tagging.isActivated) {
-              _handleDropDownSelection(key);
+              _handleSelection(key);
               if ( ctrl.taggingTokens.isActivated ) {
                 for (var i = 0; i < ctrl.taggingTokens.tokens.length; i++) {
                   // ,를 구분자로 넣으면 <와 ,를 구분하지 못해서 버그가 생기므로 이를 해결하기 위해 shiftKey를 눌렀는지 확인
@@ -966,21 +1032,12 @@
           if (data && data.length > 0) {
             // If tagging try to split by tokens and add items
             if (ctrl.taggingTokens.isActivated) {
-              var separators = [];
-              for (var i = 0, len = ctrl.taggingTokens.tokens.length; i < len; i++) {  // split by first token that is contained in data
-                separators.push(KEY.toSeparator(ctrl.taggingTokens.tokens[i]) || ctrl.taggingTokens.tokens[i]);
-              }
-              var items = data.split(new RegExp(separators.join('|'), 'g'));
+              var items = _parseStringToTagMap(data);
               if (items.length === 0) {
                 ctrl.search = data || EMPTY_SEARCH;
               }
               var oldsearch = ctrl.search;
-              angular.forEach(items, function (item) {
-                var newItem = ctrl.tagging.fct ? ctrl.tagging.fct(item) : item;
-                if (newItem) {
-                  ctrl.select(newItem, true);
-                }
-              });
+              ctrl.select(items, true);
               ctrl.search = oldsearch || EMPTY_SEARCH;
               e.preventDefault();
               e.stopPropagation();
@@ -1175,6 +1232,15 @@
                 }
               });
 
+              attrs.$observe('taggingInvalid', function () {
+                if (attrs.taggingInvalid !== undefined) {
+                  var taggingInvalidEval = scope.$eval(attrs.taggingInvalid);
+                  $select.taggingInvalid = {isActivated: true, value: taggingInvalidEval};
+                } else {
+                  $select.taggingInvalid = {isActivated: false, value: undefined};
+                }
+              });
+
               attrs.$observe('taggingLabel', function() {
                 if(attrs.tagging !== undefined )
                 {
@@ -1237,7 +1303,7 @@
                   } else {
                     skipFocusser = true;
                   }
-                  $select.close(skipFocusser);
+                  $select.close({skipFocusser: skipFocusser});
                   scope.$digest();
                 }
                 $select.clickTriggeredSelect = false;
@@ -1576,9 +1642,12 @@
         };
 
         ctrl.isActiveIndex = function (index){
-            return ctrl.activeMatchIndex === 'all' || ctrl.activeMatchIndex === index;
+          return ctrl.activeMatchIndex === 'all' || ctrl.activeMatchIndex === index;
         };
 
+        ctrl.isInvalid = function (item) {
+          return $select.taggingInvalid.isActivated && item[$select.taggingInvalid.value];
+        };
 
       }],
       controllerAs: '$selectMultiple',
@@ -1602,16 +1671,32 @@
           return !value || value.length === 0;
         };
 
+        // TODO invalid tag를 결과에 포함하지 않기 위한 Fetch
+        var viewValueCache = $select.selected.slice(),
+          modelValueCache = [];
+
         //From view --> model
         ngModel.$parsers.unshift(function () {
           var locals = {},
             result,
             resultMultiple = [];
+          if ($select.taggingInvalid.isActivated && angular.equals(viewValueCache, $select.selected)) {
+            return modelValueCache.slice();
+          }
+
           for (var j = $select.selected.length - 1; j >= 0; j--) {
+            if ($select.taggingInvalid.isActivated && $select.selected[j][$select.taggingInvalid.value]) {
+              // TODO invalid tag의 경우 result에 포함하지 않음
+              continue;
+            }
             locals = {};
             locals[$select.parserResult.itemName] = $select.selected[j];
             result = $select.parserResult.modelMapper(scope, locals);
             resultMultiple.unshift(result);
+          }
+          if ($select.taggingInvalid.isActivated) {
+            viewValueCache = $select.selected.slice();
+            modelValueCache = resultMultiple.slice();
           }
           return resultMultiple;
         });
@@ -1646,6 +1731,7 @@
             return false;
           };
           if (!inputValue) return resultMultiple; //If ngModel was undefined
+          if ($select.taggingInvalid.isActivated && angular.equals(modelValueCache, inputValue)) return viewValueCache.slice(); // if ngModel이 이전과 변한게 없으면 이전 값 반환
           for (var k = inputValue.length - 1; k >= 0; k--) {
             //Check model array of currently selected items
             if (!checkFnMultiple($select.selected, inputValue[k])){
@@ -1655,6 +1741,10 @@
                 resultMultiple.unshift(inputValue[k]);
               }
             }
+          }
+          if ($select.taggingInvalid.isActivated) {
+            modelValueCache = inputValue.slice();
+            viewValueCache = resultMultiple.slice();
           }
           return resultMultiple;
         });
@@ -1803,9 +1893,46 @@
             }
             // always reset the activeIndex to the first item when tagging
             //$select.activeIndex = $select.taggingLabel === false ? -1 : 0;
-            $select.activeIndex = 0 //TODO: taggingLabel이 flase여도 항상 0으로 세팅
+            $select.activeIndex = 0; //TODO: taggingLabel이 flase여도 항상 0으로 세팅
             // taggingLabel === false bypasses all of this
             //if ($select.taggingLabel === false) return;
+
+            // 하위로직 필요없어서 copy하기 전으로 소스 이동
+            if ( $select.tagging.fct !== undefined) {
+              scope.$applyAsync( function () {
+                $select.activeIndex = 0;
+              });
+              return;
+              // TODO newItem 추가 관련 코드 제거
+              // tagItems = $select.$filter('filter')(items,{'isTag': true});
+              // if ( tagItems.length > 0 ) {
+              //   tagItem = tagItems[0];
+              // }
+              // // remove the first element, if it has the `isTag` prop we generate a new one with each keyup, shaving the previous
+              // if ( items.length > 0 && tagItem ) {
+              //   hasTag = true;
+              //   items = items.slice(1,items.length);
+              //   stashArr = stashArr.slice(1,stashArr.length);
+              // }
+              // newItem = $select.tagging.fct($select.search);
+              // if(!newItem) {//TODO: taging false일때 item이 없으면 생성 안되도록
+              //   return;
+              // }
+              // // verify the new tag doesn't match the value of a possible selection choice or an already selected item.
+              // if (
+              //   stashArr.some(function (origItem) {
+              //     return $select.isEqual(origItem, $select.tagging.fct($select.search));
+              //   })
+              // ) {
+              //   scope.$applyAsync(function () {
+              //     $select.activeIndex = 0;
+              //     $select.items = items;
+              //   });
+              //   return;
+              // }
+              // newItem.isTag = true;
+              // handle newItem string and stripping dupes in tagging string context
+            }
 
             var items = angular.copy( $select.items );
             var stashArr = angular.copy( $select.items );
@@ -1817,84 +1944,53 @@
             var tagItem;
 
             // case for object tagging via transform `$select.tagging.fct` function
-            if ( $select.tagging.fct !== undefined) {
-              tagItems = $select.$filter('filter')(items,{'isTag': true});
-              if ( tagItems.length > 0 ) {
-                tagItem = tagItems[0];
-              }
-              // remove the first element, if it has the `isTag` prop we generate a new one with each keyup, shaving the previous
-              if ( items.length > 0 && tagItem ) {
-                hasTag = true;
-                items = items.slice(1,items.length);
-                stashArr = stashArr.slice(1,stashArr.length);
-              }
-              newItem = $select.tagging.fct($select.search);
-              if(!newItem) {//TODO: taging false일때 item이 없으면 생성 안되도록
-                return;
-              }
-              // verify the new tag doesn't match the value of a possible selection choice or an already selected item.
-              if (
-                stashArr.some(function (origItem) {
-                  return $select.isEqual(origItem, $select.tagging.fct($select.search));
-                })
-              ) {
-                scope.$applyAsync(function () {
+
+            // find any tagging items already in the $select.items array and store them
+            tagItems = $select.$filter('filter')(items,function (item) {
+              return item.match($select.taggingLabel);
+            });
+            if ( tagItems.length > 0 ) {
+              tagItem = tagItems[0];
+            }
+            item = items[0];
+            // remove existing tag item if found (should only ever be one tag item)
+            if ( item !== undefined && items.length > 0 && tagItem ) {
+              hasTag = true;
+              items = items.slice(1,items.length);
+              stashArr = stashArr.slice(1,stashArr.length);
+            }
+            newItem = $select.search+' '+$select.taggingLabel;
+            if ( _findApproxDupe($select.selected, $select.search) > -1 ) {
+              return;
+            }
+            // verify the the tag doesn't match the value of an existing item from
+            // the searched data set or the items already selected
+            if ( _findCaseInsensitiveDupe(stashArr.concat($select.selected)) ) {
+              // if there is a tag from prev iteration, strip it / queue the change
+              // and return early
+              if ( hasTag ) {
+                items = stashArr;
+                scope.$applyAsync( function () {
                   $select.activeIndex = 0;
                   $select.items = items;
                 });
-                return;
               }
-              newItem.isTag = true;
-              // handle newItem string and stripping dupes in tagging string context
-            } else {
-              // find any tagging items already in the $select.items array and store them
-              tagItems = $select.$filter('filter')(items,function (item) {
-                return item.match($select.taggingLabel);
-              });
-              if ( tagItems.length > 0 ) {
-                tagItem = tagItems[0];
-              }
-              item = items[0];
-              // remove existing tag item if found (should only ever be one tag item)
-              if ( item !== undefined && items.length > 0 && tagItem ) {
-                hasTag = true;
-                items = items.slice(1,items.length);
-                stashArr = stashArr.slice(1,stashArr.length);
-              }
-              newItem = $select.search+' '+$select.taggingLabel;
-              if ( _findApproxDupe($select.selected, $select.search) > -1 ) {
-                return;
-              }
-              // verify the the tag doesn't match the value of an existing item from
-              // the searched data set or the items already selected
-              if ( _findCaseInsensitiveDupe(stashArr.concat($select.selected)) ) {
-                // if there is a tag from prev iteration, strip it / queue the change
-                // and return early
-                if ( hasTag ) {
-                  items = stashArr;
-                  scope.$applyAsync( function () {
-                    $select.activeIndex = 0;
-                    $select.items = items;
-                  });
-                }
-                return;
-              }
-              if ( _findCaseInsensitiveDupe(stashArr) ) {
-                // if there is a tag from prev iteration, strip it
-                if ( hasTag ) {
-                  $select.items = stashArr.slice(1,stashArr.length);
-                }
-                return;
-              }
+              return;
             }
+            if ( _findCaseInsensitiveDupe(stashArr) ) {
+              // if there is a tag from prev iteration, strip it
+              if ( hasTag ) {
+                $select.items = stashArr.slice(1,stashArr.length);
+              }
+              return;
+            }
+
             if ( hasTag ) dupeIndex = _findApproxDupe($select.selected, newItem);
             // dupe found, shave the first item
             if ( dupeIndex > -1 ) {
               items = items.slice(dupeIndex+1,items.length-1);
             } else {
-              items = [];
-              items.push(newItem);
-              items = items.concat(stashArr);
+              items = [newItem].concat(stashArr);
             }
             scope.$applyAsync( function () {
               $select.activeIndex = 0;
@@ -1907,11 +2003,11 @@
             return false;
           }
           var hasDupe = arr.filter( function (origItem) {
-              if ( $select.search.toUpperCase() === undefined || origItem === undefined ) {
-                return false;
-              }
-              return origItem.toUpperCase() === $select.search.toUpperCase();
-            }).length > 0;
+            if ( $select.search.toUpperCase() === undefined || origItem === undefined ) {
+              return false;
+            }
+            return origItem.toUpperCase() === $select.search.toUpperCase();
+          }).length > 0;
 
           return hasDupe;
         }
@@ -2212,100 +2308,100 @@
     };
   }]);
 
-    //추후 개발환경 세팅해서 file로 분리
-    uis.factory('uiSelectDragFactory', function(){ return {} });
+  //추후 개발환경 세팅해서 file로 분리
+  uis.factory('uiSelectDragFactory', function(){ return {} });
 
-    //추후 개발환경 세팅해서 file로 분리
-    uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr', 'uiSelectDragFactory', function($timeout, uiSelectConfig, uiSelectMinErr, uiSelectDragFactory) {
-        return {
-            require: 'uiSelect',
-            link: function(scope, element, attrs, $select) {
-              element.addClass('ui-select-moveable');
-              //현재 select가 drag중인지 체크
-              var isDragging = false,
-                DROPPABLE_CLASS = 'ui-select-droppable',
-                DRAG_ITEM_CLASS = 'ui-select-match-item',
-                DRAG_ITEM_TYPE = 'ui-select-item';
+  //추후 개발환경 세팅해서 file로 분리
+  uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr', 'uiSelectDragFactory', function($timeout, uiSelectConfig, uiSelectMinErr, uiSelectDragFactory) {
+    return {
+      require: 'uiSelect',
+      link: function(scope, element, attrs, $select) {
+        element.addClass('ui-select-moveable');
+        //현재 select가 drag중인지 체크
+        var isDragging = false,
+          DROPPABLE_CLASS = 'ui-select-droppable',
+          DRAG_ITEM_CLASS = 'ui-select-match-item',
+          DRAG_ITEM_TYPE = 'ui-select-item';
 
-              element.on('dragstart', '.' + DRAG_ITEM_CLASS, function(event) {
-                isDragging = true;
-                uiSelectDragFactory.dropComplete = false;
-                event.dataTransfer.effectAllowed = "move";
-                var item = $select.selected[$(this).index()];
-                event.dataTransfer.setData('text', DRAG_ITEM_TYPE + JSON.stringify(item));
-              });
+        element.on('dragstart', '.' + DRAG_ITEM_CLASS, function(event) {
+          isDragging = true;
+          uiSelectDragFactory.dropComplete = false;
+          event.dataTransfer.effectAllowed = "move";
+          var item = $select.selected[$(this).index()];
+          event.dataTransfer.setData('text', DRAG_ITEM_TYPE + JSON.stringify(item));
+        });
 
-              element.on('dragend', '.' + DRAG_ITEM_CLASS, function(event) {
-                isDragging = false;
-                event.currentTarget.classList.remove(DROPPABLE_CLASS);
-                if(uiSelectDragFactory.dropComplete) {
-                  scope.$selectMultiple.removeChoice($(this).index());
-                }
-              });
+        element.on('dragend', '.' + DRAG_ITEM_CLASS, function(event) {
+          isDragging = false;
+          event.currentTarget.classList.remove(DROPPABLE_CLASS);
+          if(uiSelectDragFactory.dropComplete) {
+            scope.$selectMultiple.removeChoice($(this).index());
+          }
+        });
 
-              element.on('drop', function(event) {
-                event.preventDefault();
-                event.dataTransfer.dropEffect = "none";
-                event.currentTarget.classList.remove(DROPPABLE_CLASS);
+        element.on('drop', function(event) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "none";
+          event.currentTarget.classList.remove(DROPPABLE_CLASS);
 
-                if(!isAllowDrop(event)) {
-                  uiSelectDragFactory.dropComplete = false;
-                  return true;
-                }
-                uiSelectDragFactory.dropComplete = true;
+          if(!isAllowDrop(event)) {
+            uiSelectDragFactory.dropComplete = false;
+            return true;
+          }
+          uiSelectDragFactory.dropComplete = true;
 
-                var item = JSON.parse(event.dataTransfer.getData('text').substr(DRAG_ITEM_TYPE.length));
-                for (var i = 0; i < $select.selected.length; i++) {
-                  if($select.isEqual(item, $select.selected[i])) {
-                    return;
-                  }
-                }
-
-                $select.select(item);
-              });
-
-              element.on('dragenter', function(event) {
-                event.preventDefault();
-                event.currentTarget.classList.add(DROPPABLE_CLASS);
-                return true;
-              });
-
-
-              element.on('dragleave', function(event) {
-                event.preventDefault();
-                event.currentTarget.classList.remove(DROPPABLE_CLASS);
-                uiSelectDragFactory.dropComplete = false;
-                return true;
-              });
-
-              element.on('dragover', function(event) {
-                event.preventDefault();
-                event.currentTarget.classList.add(DROPPABLE_CLASS);
-                event.dataTransfer.dropEffect = "move";
-                return true;
-              });
-
-              //dragged인 아이템이 같은 컴퍼넌트가 아니고 type이 ui-select일 경우
-              function isAllowDrop(event) {
-                if (isDragging) {
-                  return false;
-                }
-                var text = event.dataTransfer.getData('text');
-                return text && (text.substr(0, DRAG_ITEM_TYPE.length) === DRAG_ITEM_TYPE);
-              }
-
-              scope.$on('$destroy', function(){
-                element.off('dragstart');
-                element.off('dragend');
-                element.off('drop');
-                element.off('dragenter');
-                element.off('dragleave');
-                element.off('dragover');
-              });
-
+          var item = JSON.parse(event.dataTransfer.getData('text').substr(DRAG_ITEM_TYPE.length));
+          for (var i = 0; i < $select.selected.length; i++) {
+            if($select.isEqual(item, $select.selected[i])) {
+              return;
             }
-        };
-    }]);
+          }
+
+          $select.select(item);
+        });
+
+        element.on('dragenter', function(event) {
+          event.preventDefault();
+          event.currentTarget.classList.add(DROPPABLE_CLASS);
+          return true;
+        });
+
+
+        element.on('dragleave', function(event) {
+          event.preventDefault();
+          event.currentTarget.classList.remove(DROPPABLE_CLASS);
+          uiSelectDragFactory.dropComplete = false;
+          return true;
+        });
+
+        element.on('dragover', function(event) {
+          event.preventDefault();
+          event.currentTarget.classList.add(DROPPABLE_CLASS);
+          event.dataTransfer.dropEffect = "move";
+          return true;
+        });
+
+        //dragged인 아이템이 같은 컴퍼넌트가 아니고 type이 ui-select일 경우
+        function isAllowDrop(event) {
+          if (isDragging) {
+            return false;
+          }
+          var text = event.dataTransfer.getData('text');
+          return text && (text.substr(0, DRAG_ITEM_TYPE.length) === DRAG_ITEM_TYPE);
+        }
+
+        scope.$on('$destroy', function(){
+          element.off('dragstart');
+          element.off('dragend');
+          element.off('drop');
+          element.off('dragenter');
+          element.off('dragleave');
+          element.off('dragover');
+        });
+
+      }
+    };
+  }]);
 
   /**
    * Parses "repeat" attribute.

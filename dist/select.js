@@ -235,7 +235,7 @@
               if ($window.document.addEventListener) {  //crude way to exclude IE8, specifically, which also cannot capture events
                 // grouping에서 오동작을 막기위해 itemIndex를 activeIndex로 설정
                 choices.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)')
-                  .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',$select.skipFocusser,$event)')
+                  .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',{skipFocusser: $select.skipFocusser, $event: $event})')
                   .attr('ng-init', 'itemIndex=$select.getItemIndex(this)')
                   .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
 
@@ -248,7 +248,7 @@
               if (!$window.document.addEventListener) {  //crude way to target IE8, specifically, which also cannot capture events - so event bindings must be here
                 // grouping에서 오동작을 막기위해 itemIndex를 activeIndex로 설정
                 rowsInner.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)')
-                  .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',$select.skipFocusser,$event)')
+                  .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',{skipFocusser: $select.skipFocusser, $event: $event})')
                   .attr('ng-init', 'itemIndex=$select.getItemIndex(this)')
                   .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
                 rowsInner.children().attr('ng-class', '{\'prev-selected\': $select.isPrevActive(itemIndex)}');
@@ -375,6 +375,7 @@
         ctrl.resetSearchInput = true;
         ctrl.multiple = undefined; // Initialized inside uiSelect directive link function
         ctrl.disableChoiceExpression = undefined; // Initialized inside uiSelectChoices directive link function
+        ctrl.resetOnEsc = false; // 어떤 상태여도 ESC를 누르면 검색어가 사라짐
         ctrl.tagging = {isActivated: false, fct: undefined};
         ctrl.taggingInvalid = {isActivated: false, value: undefined};
         ctrl.taggingTokens = {isActivated: false, tokens: undefined};
@@ -423,7 +424,7 @@
         function _resetSearchInput(skipSelect) {
           if (ctrl.resetSearchInput || (ctrl.resetSearchInput === undefined && uiSelectConfig.resetSearchInput)) {
             if (!skipSelect && ctrl.multiple && ctrl.tagging.isActivated && ctrl.search !== EMPTY_SEARCH) {
-              var newItem = _parseStringToTagMap(ctrl.search);
+              var newItem = ctrl.parseStringToTagMap(ctrl.search);
               ctrl.search = EMPTY_SEARCH;
               // select안에 _resetSearchInput을 호출하는 로직이 있어서 무한루프에 빠지지 않기위해 수정
               ctrl.select(newItem);
@@ -674,20 +675,21 @@
           return isDisabled;
         };
 
-        function _isArrayItem(item) {
-          return angular.isArray(item) && item.length > 0;
-        }
-
-        function _selectArrayItem(itemList, skipFocusser, $event) {
+        function _selectArrayItem(itemList, option) {
           angular.forEach(itemList, function (item) {
-            item && ctrl.select(item, skipFocusser, $event);
+            item && ctrl.select(item, option);
           });
         }
 
         // When the user selects an item with ENTER or clicks the dropdown
-        ctrl.select = function(item, skipFocusser, $event) {
-          if (_isArrayItem(item)) {
-            _selectArrayItem(item, skipFocusser, $event);
+        //option = {skipFocusser, $event, skipBroadcast}
+        // skipFocusser: search창이 닫힌 후에 focusser에 focus를 하지 않음
+        // $event: select를 trigger한 event
+        // skipAdd: 추가 관련 broadcast를 수행하지 않음(수행시 selected가 변하지 않음)
+        ctrl.select = function(item, option) {
+          option = option || {};
+          if (angular.isArray(item)) {
+            _selectArrayItem(item, option);
             return;
           }
           if (item === undefined || !item._uiSelectChoiceDisabled) {
@@ -702,15 +704,15 @@
                   //클릭이벤트인지도 판단할 수 있도록 해야함.
                   if ( ctrl.activeIndex < 0 ) {
                     item = ctrl.tagging.fct !== undefined ? ctrl.tagging.fct(ctrl.search) : ctrl.search;
-                    if (_isArrayItem(item)) {
-                      _selectArrayItem(item, skipFocusser, $event);
+                    if (angular.isArray(item)) {
+                      _selectArrayItem(item, option);
                       return;
                     } else if (!item || ctrl.isEqual( ctrl.items[0], item ) ) {
                       return;
                     }
                   } else if (!item) {
                     return;
-                  } else if ($event && $event.type === 'click') { //TODO: click일 경우 예외처리
+                  } else if (option.$event && option.$event.type === 'click') { //TODO: click일 경우 예외처리
                     // keyboard nav happened first, user selected from dropdown
                     //item = ctrl.items[ctrl.activeIndex];
                   }
@@ -726,8 +728,8 @@
                     // use tagging function if we have one
                     if ( ctrl.tagging.fct !== undefined && typeof item === 'string' ) {
                       item = ctrl.tagging.fct(item);
-                      if (_isArrayItem(item)) {
-                        _selectArrayItem(item, skipFocusser, $event);
+                      if (angular.isArray(item)) {
+                        _selectArrayItem(item, option);
                         return;
                       } else if (!item) return;
                       // if item type is 'string', apply the tagging label
@@ -746,7 +748,7 @@
                 }
               }
 
-              $scope.$broadcast('uis:select', item);
+              !option.skipAdd && $scope.$broadcast('uis:select', item);
 
               // TODO 검색을 위해 선택시에 keyword를 추가
               var locals = {};
@@ -763,9 +765,9 @@
 
               if (ctrl.closeOnSelect) {
                 // select무한이 반복하는 현상 방어
-                ctrl.close({skipFocusser: skipFocusser, skipSelect: true});
+                ctrl.close({skipFocusser: option.skipFocusser, skipSelect: true});
               }
-              if ($event && $event.type === 'click') {
+              if (option.$event && option.$event.type === 'click') {
                 ctrl.clickTriggeredSelect = true;
               }
             }
@@ -874,7 +876,7 @@
           var items = [];
           angular.forEach(stringTokens, function (stringToken) {
             var newItem = ctrl.tagging.fct(stringToken);
-            if (_isArrayItem(newItem)) {
+            if (angular.isArray(newItem)) {
               items = items.concat(newItem);
             } else if (newItem) {
               items.push(newItem);
@@ -883,14 +885,14 @@
           return items;
         }
 
-        function _parseStringToTagMap(str) {
+        ctrl.parseStringToTagMap = function(str) {
           if (ctrl.multiple && ctrl.tagging.isActivated && ctrl.tagging.fct) {
             var tokens = _convertTokens(),
               stringTokens = tokens.length > 0 ? str.split(new RegExp(tokens.join('|'), 'g')) : str;
             return _makeTagListUsingFct(stringTokens);
           }
           return [];
-        }
+        };
 
         function _handleSelection(key) {
           var processed = true;
@@ -911,18 +913,18 @@
               break;
             case KEY.TAB:
               if (ctrl.items.length > 0 && (!ctrl.multiple || ctrl.open)) {
-                ctrl.select(ctrl.items[ctrl.activeIndex], true);
+                ctrl.select(ctrl.items[ctrl.activeIndex], {skipFocusser: true});
               }
               break;
             case KEY.ENTER:
               if(ctrl.open && (ctrl.tagging.isActivated || ctrl.activeIndex >= 0)){
-                ctrl.items.length > 0 && ctrl.select(ctrl.items[ctrl.activeIndex], ctrl.skipFocusser); // Make sure at least one dropdown item is highlighted before adding if not in tagging mode
+                ctrl.items.length > 0 && ctrl.select(ctrl.items[ctrl.activeIndex], {skipFocusser: ctrl.skipFocusser}); // Make sure at least one dropdown item is highlighted before adding if not in tagging mode
               } else {
                 ctrl.activate(false, true); //In case its the search input in 'multiple' mode
               }
               break;
             case KEY.ESC:
-              (ctrl.open && ctrl.items.length > 0) ? ctrl.close({skipResetInput: ctrl.multiple}) : _resetSearchInput(true);
+              (!ctrl.resetOnEsc && ctrl.open && ctrl.items.length > 0) ? ctrl.close({skipResetInput: ctrl.multiple}) : _resetSearchInput(true);
               break;
             default:
               processed = false;
@@ -977,7 +979,7 @@
                     if ( ctrl.tagging.fct ) {
                       newItem = ctrl.tagging.fct( newItem );
                     }
-                    if (newItem) ctrl.select(newItem, true);
+                    if (newItem) ctrl.select(newItem, {skipFocusser: true});
                   });
                 }
               }
@@ -1032,13 +1034,12 @@
           if (data && data.length > 0) {
             // If tagging try to split by tokens and add items
             if (ctrl.taggingTokens.isActivated) {
-              var items = _parseStringToTagMap(data);
+              var items = ctrl.parseStringToTagMap(data);
               if (items.length === 0) {
                 ctrl.search = data || EMPTY_SEARCH;
               }
-              var oldsearch = ctrl.search;
-              ctrl.select(items, true);
-              ctrl.search = oldsearch || EMPTY_SEARCH;
+              ctrl.select(items, {skipFocusser: true});
+              ctrl.search = EMPTY_SEARCH;
               e.preventDefault();
               e.stopPropagation();
             } else if (ctrl.paste) {
@@ -1193,6 +1194,9 @@
                   element.removeAttr('tabindex');
                 });
               }
+
+              // attribute 가 설정되어 있으면 true
+              $select.resetOnEsc = attrs.resetOnEsc;
 
               scope.$watch('searchEnabled', function() {
                 var searchEnabled = scope.$eval(attrs.searchEnabled);
@@ -1601,12 +1605,22 @@
         };
 
         // Remove item from multiple select
-        ctrl.removeChoice = function(index){
+        // option = {skipRemove, skipSync}
+        // skipRemove: remove관련 동작을 수행하지 않음(selected도 수정되지 않음)
+        // skipSync: sync관련 동작을 수행하지 않음(삭제는 수행)
+        ctrl.removeChoice = function(index, option){
+          option = option || {};
           if (index === 'all') {
-            $select.selected.length = 0;
             ctrl.activeMatchIndex = -1;
-            $select.sizeSearchInput();
-            ctrl.updateModel();
+            if (!option.skipRemove) {
+              var newSelectedList = [];
+              angular.forEach($select.selected, function (item) {
+                item._uiSelectChoiceLocked && newSelectedList.push(item);
+              });
+              $select.selected = newSelectedList;
+              $select.sizeSearchInput();
+              ctrl.updateModel();
+            }
             $select.onRemoveCallback($scope, {});
             return;
           }
@@ -1619,9 +1633,12 @@
           var locals = {};
           locals[$select.parserResult.itemName] = removedChoice;
 
-          $select.selected.splice(index, 1);
           ctrl.activeMatchIndex = -1;
-          $select.sizeSearchInput();
+          if (!option.skipRemove) {
+            $select.selected.splice(index, 1);
+            $select.sizeSearchInput();
+            ctrl.updateModel();
+          }
 
           // Give some time for scope propagation.
           $timeout(function(){
@@ -1630,15 +1647,38 @@
               $model: $select.parserResult.modelMapper($scope, locals)
             });
           }, 0, false);
-
-          ctrl.updateModel();
-
         };
 
         ctrl.getPlaceholder = function(){
           //Refactor single?
           if($select.selected && $select.selected.length) return;
           return $select.placeholder;
+        };
+
+        ctrl.onKeydownEditInput = function(e){
+          var key = e.which;
+          if (key === KEY.ENTER) {
+            e.preventDefault();
+            $select.searchInput.trigger('focus');
+          }
+        };
+
+        ctrl.editItem = function(input, item, idx){
+          if ($select.selected[idx] === item) {
+            var items = [];
+            // 삭제나 추가되었을 때의 동작은 수행하지만 실제 selected값은 수행되지 않게 호출
+            ctrl.removeChoice(idx, {skipRemove: true});
+            if ($select.tagging.isActivated && input.length > 0) {
+              items = $select.parseStringToTagMap(input);
+              $select.select(items, {skipFocusser: true, skipAdd: true});
+            }
+
+            // 실제 selected값 변경 및 sync
+            // select를 하면서 기존의 태그가 삭제되었을 수도 있어서 검증후 제거
+            Array.prototype.splice.apply($select.selected, [idx, ($select.selected[idx] === item ? 1 : 0)].concat(items));
+            $select.sizeSearchInput();
+            ctrl.updateModel();
+          }
         };
 
         ctrl.isActiveIndex = function (index){

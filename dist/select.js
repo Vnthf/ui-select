@@ -1035,11 +1035,13 @@
             // If tagging try to split by tokens and add items
             if (ctrl.taggingTokens.isActivated) {
               var items = ctrl.parseStringToTagMap(data);
-              if (items.length === 0) {
+              if (items.length === 0 ||
+                (ctrl.taggingInvalid.isActivated && items.length === 1)) {
                 ctrl.search = data || EMPTY_SEARCH;
+              } else {
+                ctrl.select(items, {skipFocusser: true});
+                ctrl.search = EMPTY_SEARCH;
               }
-              ctrl.select(items, {skipFocusser: true});
-              ctrl.search = EMPTY_SEARCH;
               e.preventDefault();
               e.stopPropagation();
             } else if (ctrl.paste) {

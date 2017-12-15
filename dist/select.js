@@ -1866,7 +1866,7 @@
             newIndex = curr,
             searchLength = $select.search.length;
 
-          if(caretPosition > 0 || (searchLength && key == KEY.RIGHT) || (isSelectAll && searchLength)) return false;
+          if(caretPosition > 0 || (searchLength && (isSelectAll || key !== KEY.LEFT))) return false;
 
           $select.close();
 

@@ -69,7 +69,7 @@ uis.directive('uiSelectSort', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr', f
         $timeout.cancel(dropTimeout);
         dropTimeout = $timeout(function() {
           _dropHandler(droppedItemIndex);
-        }, 20);
+        }, 20, false);
       };
 
       var _dropHandler = function(droppedItemIndex) {
@@ -93,7 +93,7 @@ uis.directive('uiSelectSort', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr', f
 
         move.apply(theList, [droppedItemIndex, newIndex]);
 
-        scope.$apply(function() {
+        scope.$applyAsync(function() {
           scope.$emit('uiSelectSort:change', {
             array: theList,
             item: itemToMove,

@@ -37,7 +37,9 @@ uis.controller('uiSelectCtrl',
   ctrl.resetSearchInput = true;
   ctrl.multiple = undefined; // Initialized inside uiSelect directive link function
   ctrl.disableChoiceExpression = undefined; // Initialized inside uiSelectChoices directive link function
+  ctrl.resetOnEsc = false; // 어떤 상태여도 ESC를 누르면 검색어가 사라짐
   ctrl.tagging = {isActivated: false, fct: undefined};
+  ctrl.taggingInvalid = {isActivated: false, value: undefined};
   ctrl.taggingTokens = {isActivated: false, tokens: undefined};
   ctrl.lockChoiceExpression = undefined; // Initialized inside uiSelectMatch directive link function
   ctrl.clickTriggeredSelect = false;
@@ -81,13 +83,20 @@ uis.controller('uiSelectCtrl',
   }
 
   // Most of the time the user does not want to empty the search input when in typeahead mode
-  function _resetSearchInput() {
+  function _resetSearchInput(skipSelect) {
     if (ctrl.resetSearchInput || (ctrl.resetSearchInput === undefined && uiSelectConfig.resetSearchInput)) {
+      if (!skipSelect && ctrl.multiple && ctrl.tagging.isActivated && ctrl.search !== EMPTY_SEARCH) {
+        var newItem = ctrl.parseStringToTagMap(ctrl.search);
+        ctrl.search = EMPTY_SEARCH;
+        // select안에 _resetSearchInput을 호출하는 로직이 있어서 무한루프에 빠지지 않기위해 수정
+        ctrl.select(newItem);
+        return;
+      }
       ctrl.search = EMPTY_SEARCH;
       //reset activeIndex
       if (ctrl.selected && ctrl.items.length && !ctrl.multiple) {
         ctrl.activeIndex = _findIndex(ctrl.items, function(item){
-          return angular.equals(this, item);
+          return ctrl.equals(this, item);
         }, ctrl.selected);
       }
     }
@@ -109,7 +118,7 @@ uis.controller('uiSelectCtrl',
   ctrl.activate = function(initSearchValue, avoidReset) {
     if (!ctrl.disabled  && !ctrl.open) {
       if(!avoidReset) _resetSearchInput();
-
+      ctrl.refresh(ctrl.refreshAttr);
       $scope.$broadcast('uis:activate');
 
       ctrl.open = true;
@@ -123,37 +132,54 @@ uis.controller('uiSelectCtrl',
       }
 
       var container = $element.querySelectorAll('.ui-select-choices-content');
-      var searchInput = $element.querySelectorAll('.ui-select-search');
-      if (ctrl.$animate && ctrl.$animate.enabled(container[0])) {
-        var animateHandler = function(elem, phase) {
-          if (phase === 'start' && ctrl.items.length === 0) {
+      if (ctrl.$animate && ctrl.$animate.on && ctrl.$animate.enabled(container[0])) {
+        ctrl.$animate.on('enter', container[0], function (elem, phase) {
+          if (phase === 'close') {
             // Only focus input after the animation has finished
-            ctrl.$animate.off('removeClass', searchInput[0], animateHandler);
             $timeout(function () {
               ctrl.focusSearchInput(initSearchValue);
-            });
-          } else if (phase === 'close') {
-            // Only focus input after the animation has finished
-            ctrl.$animate.off('enter', container[0], animateHandler);
-            $timeout(function () {
-              ctrl.focusSearchInput(initSearchValue);
-            });
+            }, 0, false);
           }
-        };
-
-        if (ctrl.items.length > 0) {
-          ctrl.$animate.on('enter', container[0], animateHandler);
-        } else {
-          ctrl.$animate.on('removeClass', searchInput[0], animateHandler);
-        }
+        });
       } else {
         $timeout(function () {
           ctrl.focusSearchInput(initSearchValue);
           if(!ctrl.tagging.isActivated && ctrl.items.length > 1) {
             _ensureHighlightVisible();
           }
-        });
+        }, 0, false);
       }
+      // var searchInput = $element.querySelectorAll('.ui-select-search');
+      // if (ctrl.$animate && ctrl.$animate.enabled(container[0])) {
+      //   var animateHandler = function(elem, phase) {
+      //     if (phase === 'start' && ctrl.items.length === 0) {
+      //       // Only focus input after the animation has finished
+      //       ctrl.$animate.off('removeClass', searchInput[0], animateHandler);
+      //       $timeout(function () {
+      //         ctrl.focusSearchInput(initSearchValue);
+      //       });
+      //     } else if (phase === 'close') {
+      //       // Only focus input after the animation has finished
+      //       ctrl.$animate.off('enter', container[0], animateHandler);
+      //       $timeout(function () {
+      //         ctrl.focusSearchInput(initSearchValue);
+      //       });
+      //     }
+      //   };
+      //
+      //   if (ctrl.items.length > 0) {
+      //     ctrl.$animate.on('enter', container[0], animateHandler);
+      //   } else {
+      //     ctrl.$animate.on('removeClass', searchInput[0], animateHandler);
+      //   }
+      // } else {
+      //   $timeout(function () {
+      //     ctrl.focusSearchInput(initSearchValue);
+      //     if(!ctrl.tagging.isActivated && ctrl.items.length > 1) {
+      //       _ensureHighlightVisible();
+      //     }
+      //   }, 0, false);
+      // }
     }
   };
 
@@ -230,22 +256,32 @@ uis.controller('uiSelectCtrl',
       }, true);
     }
 
-    ctrl.refreshItems = function (data){
+    // ctrl.refreshItems = function (data){
+    //   data = data || ctrl.parserResult.source($scope);
+    //   var selectedItems = ctrl.selected;
+    //   //TODO should implement for single mode removeSelected
+    //   if (ctrl.isEmpty() || (angular.isArray(selectedItems) && !selectedItems.length) || !ctrl.removeSelected) {
+    //     ctrl.setItemsFn(data);
+    //   }else{
+    //     if ( data !== undefined ) {
+    //       var filteredItems = data.filter(function(i) {
+    //         return selectedItems.every(function(selectedItem) {
+    //           return !angular.equals(i, selectedItem);
+    //         });
+    //       });
+    //       ctrl.setItemsFn(filteredItems);
+    //     }
+    //   }
+    //   if (ctrl.dropdownPosition === 'auto' || ctrl.dropdownPosition === 'up'){
+    //     $scope.calculateDropdownPos();
+    //   }
+    // };
+
+    ctrl.refreshItems = function (data, callbackData){
       data = data || ctrl.parserResult.source($scope);
-      var selectedItems = ctrl.selected;
-      //TODO should implement for single mode removeSelected
-      if (ctrl.isEmpty() || (angular.isArray(selectedItems) && !selectedItems.length) || !ctrl.removeSelected) {
-        ctrl.setItemsFn(data);
-      }else{
-        if ( data !== undefined ) {
-          var filteredItems = data.filter(function(i) {
-            return selectedItems.every(function(selectedItem) {
-              return !angular.equals(i, selectedItem);
-            });
-          });
-          ctrl.setItemsFn(filteredItems);
-        }
-      }
+      callbackData = callbackData || angular.noop;
+      data = callbackData(data) || data;
+      ctrl.setItemsFn(data);
       if (ctrl.dropdownPosition === 'auto' || ctrl.dropdownPosition === 'up'){
         $scope.calculateDropdownPos();
       }
@@ -294,6 +330,17 @@ uis.controller('uiSelectCtrl',
     }
   };
 
+  ctrl.getItemIndex = function (itemScope) {
+    if (!ctrl.open) {
+      return false;
+    }
+    return ctrl.items.indexOf(itemScope[ctrl.itemProperty]);
+  };
+
+  ctrl.isPrevActive = function (itemIndex) {
+    return ctrl.prevActiveIndex === itemIndex;
+  };
+
   ctrl.isActive = function(itemScope) {
     if ( !ctrl.open ) {
       return false;
@@ -329,9 +376,24 @@ uis.controller('uiSelectCtrl',
     return isDisabled;
   };
 
+  function _selectArrayItem(itemList, option) {
+    angular.forEach(itemList, function (item) {
+      item && ctrl.select(item, option);
+    });
+  }
 
-  // When the user selects an item with ENTER or clicks the dropdown
-  ctrl.select = function(item, skipFocusser, $event) {
+
+    // When the user selects an item with ENTER or clicks the dropdown
+    //option = {skipFocusser, $event, skipBroadcast}
+    // skipFocusser: search창이 닫힌 후에 focusser에 focus를 하지 않음
+    // $event: select를 trigger한 event
+    // skipAdd: 추가 관련 broadcast를 수행하지 않음(수행시 selected가 변하지 않음)
+  ctrl.select = function(item, option) {
+    option = option || {};
+    if (angular.isArray(item)) {
+      _selectArrayItem(item, option);
+      return;
+    }
     if (item === undefined || !item._uiSelectChoiceDisabled) {
 
       if ( ! ctrl.items && ! ctrl.search && ! ctrl.tagging.isActivated) return;
@@ -340,14 +402,21 @@ uis.controller('uiSelectCtrl',
         if(ctrl.tagging.isActivated) {
           // if taggingLabel is disabled, we pull from ctrl.search val
           if ( ctrl.taggingLabel === false ) {
+            //TODO: tagging이 false일 때 예외처리 필요. activeIndex의 최소값은 0 (항상 select가 되도록), 없으면 노출 X
+            //클릭이벤트인지도 판단할 수 있도록 해야함.
             if ( ctrl.activeIndex < 0 ) {
               item = ctrl.tagging.fct !== undefined ? ctrl.tagging.fct(ctrl.search) : ctrl.search;
-              if (!item || angular.equals( ctrl.items[0], item ) ) {
+              if (angular.isArray(item)) {
+                _selectArrayItem(item, option);
+                return;
+              } else if (!item || ctrl.isEqual( ctrl.items[0], item ) ) {
                 return;
               }
-            } else {
+            } else if (!item) {
+              return;
+            } else if (option.$event && option.$event.type === 'click') { //TODO: click일 경우 예외처리
               // keyboard nav happened first, user selected from dropdown
-              item = ctrl.items[ctrl.activeIndex];
+              //item = ctrl.items[ctrl.activeIndex];
             }
           } else {
             // tagging always operates at index zero, taggingLabel === false pushes
@@ -361,7 +430,10 @@ uis.controller('uiSelectCtrl',
               // use tagging function if we have one
               if ( ctrl.tagging.fct !== undefined && typeof item === 'string' ) {
                 item = ctrl.tagging.fct(item);
-                if (!item) return;
+                if (angular.isArray(item)) {
+                  _selectArrayItem(item, option);
+                  return;
+                } else if (!item) return;
               // if item type is 'string', apply the tagging label
               } else if ( typeof item === 'string' ) {
                 // trim the trailing space
@@ -369,44 +441,58 @@ uis.controller('uiSelectCtrl',
               }
             }
           }
-          // search ctrl.selected for dupes potentially caused by tagging and return early if found
-          if ( ctrl.selected && angular.isArray(ctrl.selected) && ctrl.selected.filter( function (selection) { return angular.equals(selection, item); }).length > 0 ) {
-            ctrl.close(skipFocusser);
-            return;
+        }
+
+        if ( ctrl.selected && angular.isArray(ctrl.selected)) {
+          var dupIndex = ctrl.selected.findIndex( function (selection) { return ctrl.isEqual(selection, item); });
+          if (dupIndex > -1) {
+            ctrl.selected.splice(dupIndex, 1);
           }
         }
 
-        $scope.$broadcast('uis:select', item);
+        !option.skipAdd && $scope.$broadcast('uis:select', item);
 
+        // TODO 검색을 위해 선택시에 keyword를 추가
         var locals = {};
+        ctrl.keyword = ctrl.search;
         locals[ctrl.parserResult.itemName] = item;
 
         $timeout(function(){
           ctrl.onSelectCallback($scope, {
+            $keyword: ctrl.keyword,
             $item: item,
             $model: ctrl.parserResult.modelMapper($scope, locals)
-          });
+          }, 0, false);
         });
 
         if (ctrl.closeOnSelect) {
-          ctrl.close(skipFocusser);
+          // select무한이 반복하는 현상 방어
+          ctrl.close({skipFocusser: option.skipFocusser, skipSelect: true});
         }
-        if ($event && $event.type === 'click') {
+        if (option.$event && option.$event.type === 'click') {
           ctrl.clickTriggeredSelect = true;
         }
       }
     }
   };
 
-  // Closes the dropdown
-  ctrl.close = function(skipFocusser) {
+    // Closes the dropdown
+    // option: skipFocusser, skipSelect, skipResetInput
+  ctrl.close = function(option) {
     if (!ctrl.open) return;
+    option = option || {};
     if (ctrl.ngModel && ctrl.ngModel.$setTouched) ctrl.ngModel.$setTouched();
-    _resetSearchInput();
+    !option.skipResetInput && _resetSearchInput(option.skipSelect);
     ctrl.open = false;
 
-    $scope.$broadcast('uis:close', skipFocusser);
+    $scope.$broadcast('uis:close', option.skipFocusser);
 
+  };
+
+  ctrl.onMouseEnter = function (itemIndex) {
+    if (!ctrl.keyDownMode) {
+      ctrl.activeIndex = itemIndex;
+    }
   };
 
   ctrl.setFocus = function(){
@@ -428,6 +514,8 @@ uis.controller('uiSelectCtrl',
       e.preventDefault();
       e.stopPropagation();
     } else {
+      _resetSearchInput();
+      ctrl.prevActiveIndex = ctrl.activeIndex;
       ctrl.activate();
     }
   };
@@ -456,7 +544,7 @@ uis.controller('uiSelectCtrl',
           if (containerWidth === 0) {
             return false;
           }
-          var inputWidth = containerWidth - input.offsetLeft - 10;
+          var inputWidth = containerWidth - input.offsetLeft - (ctrl.multiple ? 10 : 0);
           if (inputWidth < 50) inputWidth = containerWidth;
           ctrl.searchInput.css('width', inputWidth+'px');
           return true;
@@ -472,32 +560,73 @@ uis.controller('uiSelectCtrl',
           }
         });
       }
-    });
+    }, 0, false);
   };
 
-  function _handleDropDownSelection(key) {
+  function _convertTokens() {
+    if (!ctrl.taggingTokens.isActivated) {
+      return [];
+    }
+    var tokens = [];
+    for (var i = 0, len = ctrl.taggingTokens.tokens.length; i < len; i++) {
+      tokens.push(KEY.toSeparator(ctrl.taggingTokens.tokens[i]) || ctrl.taggingTokens.tokens[i]);
+    }
+    return tokens;
+  }
+
+  function _makeTagListUsingFct(stringTokens) {
+    var items = [];
+    angular.forEach(stringTokens, function (stringToken) {
+      var newItem = ctrl.tagging.fct(stringToken);
+      if (angular.isArray(newItem)) {
+        items = items.concat(newItem);
+      } else if (newItem) {
+        items.push(newItem);
+      }
+    });
+    return items;
+  }
+
+  ctrl.parseStringToTagMap = function(str) {
+    if (ctrl.multiple && ctrl.tagging.isActivated && ctrl.tagging.fct) {
+      var tokens = _convertTokens(),
+        stringTokens = tokens.length > 0 ? str.split(new RegExp(tokens.join('|'), 'g')) : str;
+      return _makeTagListUsingFct(stringTokens);
+    }
+    return [];
+  };
+
+  function _handleSelection(key) {
     var processed = true;
     switch (key) {
       case KEY.DOWN:
         if (!ctrl.open && ctrl.multiple) ctrl.activate(false, true); //In case its the search input in 'multiple' mode
-        else if (ctrl.activeIndex < ctrl.items.length - 1) { ctrl.activeIndex++; }
+        else if (ctrl.activeIndex < ctrl.items.length - 1) {
+          _enableKeyDownMode();
+          ctrl.activeIndex++;
+        }
         break;
       case KEY.UP:
         if (!ctrl.open && ctrl.multiple) ctrl.activate(false, true); //In case its the search input in 'multiple' mode
-        else if (ctrl.activeIndex > 0 || (ctrl.search.length === 0 && ctrl.tagging.isActivated && ctrl.activeIndex > -1)) { ctrl.activeIndex--; }
+        else if (ctrl.activeIndex > 0 || (ctrl.search.length === 0 && ctrl.tagging.isActivated && ctrl.activeIndex > -1)) {
+          _enableKeyDownMode();
+          ctrl.activeIndex--;
+        }
         break;
       case KEY.TAB:
-        if (!ctrl.multiple || ctrl.open) ctrl.select(ctrl.items[ctrl.activeIndex], true);
+        if (ctrl.items.length > 0 && (!ctrl.multiple || ctrl.open)) {
+          ctrl.select(ctrl.items[ctrl.activeIndex], {skipFocusser: true});
+        }
         break;
       case KEY.ENTER:
         if(ctrl.open && (ctrl.tagging.isActivated || ctrl.activeIndex >= 0)){
-          ctrl.select(ctrl.items[ctrl.activeIndex], ctrl.skipFocusser); // Make sure at least one dropdown item is highlighted before adding if not in tagging mode
+          ctrl.items.length > 0 && ctrl.select(ctrl.items[ctrl.activeIndex], {skipFocusser: ctrl.skipFocusser}); // Make sure at least one dropdown item is highlighted before adding if not in tagging mode
         } else {
           ctrl.activate(false, true); //In case its the search input in 'multiple' mode
         }
         break;
       case KEY.ESC:
-        ctrl.close();
+        (!ctrl.resetOnEsc && ctrl.open && ctrl.items.length > 0) ? ctrl.close({skipResetInput: ctrl.multiple}) : _resetSearchInput(true);
         break;
       default:
         processed = false;
@@ -505,7 +634,16 @@ uis.controller('uiSelectCtrl',
     return processed;
   }
 
-  // Bind to keyboard shortcuts
+  var timeoutInstance = null;
+  function _enableKeyDownMode() {
+    $timeout.cancel(timeoutInstance);
+    ctrl.keyDownMode = true;
+    timeoutInstance = $timeout(function () {
+      ctrl.keyDownMode = false;
+    }, 300, false);
+  }
+
+    // Bind to keyboard shortcuts
   ctrl.searchInput.on('keydown', function(e) {
 
     var key = e.which;
@@ -525,10 +663,11 @@ uis.controller('uiSelectCtrl',
       var tagged = false;
 
       if (ctrl.items.length > 0 || ctrl.tagging.isActivated) {
-        _handleDropDownSelection(key);
+        _handleSelection(key);
         if ( ctrl.taggingTokens.isActivated ) {
           for (var i = 0; i < ctrl.taggingTokens.tokens.length; i++) {
-            if ( ctrl.taggingTokens.tokens[i] === KEY.MAP[e.keyCode] ) {
+            // ,를 구분자로 넣으면 <와 ,를 구분하지 못해서 버그가 생기므로 이를 해결하기 위해 shiftKey를 눌렀는지 확인
+            if ( ctrl.taggingTokens.tokens[i] === KEY.MAP[e.keyCode] && !e.shiftKey ) {
               // make sure there is a new value to push via tagging
               if ( ctrl.search.length > 0 ) {
                 tagged = true;
@@ -542,7 +681,7 @@ uis.controller('uiSelectCtrl',
               if ( ctrl.tagging.fct ) {
                 newItem = ctrl.tagging.fct( newItem );
               }
-              if (newItem) ctrl.select(newItem, true);
+              if (newItem) ctrl.select(newItem, {skipFocusser: true});
             });
           }
         }
@@ -561,8 +700,28 @@ uis.controller('uiSelectCtrl',
 
   });
 
+  function _pasteData(el, data) {
+    var value = el.value;
+    if(angular.isNumber(el.selectionStart)) {
+      var startPos = el.selectionStart,
+        endPos = el.selectionEnd,
+        result = value.slice(0, startPos) + data + value.slice(endPos);
+      startPos += data.length;
+      endPos = startPos;
+      return {
+        result: result,
+        startPos: startPos,
+        endPos: endPos
+      };
+    }
+    // selectionStart is not supported in IE8 and we don't want hacky workarounds so we compromise
+    else return {
+      result: value + data
+    };
+  }
+
   ctrl.searchInput.on('paste', function (e) {
-    var data;
+    var data, result;
 
     if (window.clipboardData && window.clipboardData.getData) { // IE
       data = window.clipboardData.getData('Text');
@@ -571,30 +730,39 @@ uis.controller('uiSelectCtrl',
     }
 
     // Prepend the current input field text to the paste buffer.
-    data = ctrl.search + data;
+    result = _pasteData(e.target, data);
+    data = result.result;
 
     if (data && data.length > 0) {
       // If tagging try to split by tokens and add items
       if (ctrl.taggingTokens.isActivated) {
-        var items = [];
-        for (var i = 0; i < ctrl.taggingTokens.tokens.length; i++) {  // split by first token that is contained in data
-          var separator = KEY.toSeparator(ctrl.taggingTokens.tokens[i]) || ctrl.taggingTokens.tokens[i];
-          if (data.indexOf(separator) > -1) {
-            items = data.split(separator);
-            break;  // only split by one token
-          }
+        var items = ctrl.parseStringToTagMap(data);
+        if (items.length === 0 ||
+          (ctrl.taggingInvalid.isActivated && items.length === 1)) {
+          ctrl.search = data || EMPTY_SEARCH;
+        } else {
+          ctrl.select(items, {skipFocusser: true});
+          ctrl.search = EMPTY_SEARCH;
         }
-        if (items.length === 0) {
-          items = [data];
-        }
-        var oldsearch = ctrl.search;
-        angular.forEach(items, function (item) {
-          var newItem = ctrl.tagging.fct ? ctrl.tagging.fct(item) : item;
-          if (newItem) {
-            ctrl.select(newItem, true);
-          }
-        });
-        ctrl.search = oldsearch || EMPTY_SEARCH;
+        // var items = [];
+        // for (var i = 0; i < ctrl.taggingTokens.tokens.length; i++) {  // split by first token that is contained in data
+        //   var separator = KEY.toSeparator(ctrl.taggingTokens.tokens[i]) || ctrl.taggingTokens.tokens[i];
+        //   if (data.indexOf(separator) > -1) {
+        //     items = data.split(separator);
+        //     break;  // only split by one token
+        //   }
+        // }
+        // if (items.length === 0) {
+        //   items = [data];
+        // }
+        // var oldsearch = ctrl.search;
+        // angular.forEach(items, function (item) {
+        //   var newItem = ctrl.tagging.fct ? ctrl.tagging.fct(item) : item;
+        //   if (newItem) {
+        //     ctrl.select(newItem, true);
+        //   }
+        // });
+        // ctrl.search = oldsearch || EMPTY_SEARCH;
         e.preventDefault();
         e.stopPropagation();
       } else if (ctrl.paste) {
@@ -602,14 +770,17 @@ uis.controller('uiSelectCtrl',
         ctrl.search = EMPTY_SEARCH;
         e.preventDefault();
         e.stopPropagation();
+      } else {
+        ctrl.search = data || EMPTY_SEARCH;
       }
+      $scope.$applyAsync();
     }
   });
 
   ctrl.searchInput.on('tagged', function() {
     $timeout(function() {
       _resetSearchInput();
-    });
+    }, 0, false);
   });
 
   // See https://github.com/ivaynberg/select2/blob/3.4.6/select2.js#L1431
@@ -638,14 +809,22 @@ uis.controller('uiSelectCtrl',
     }
   }
 
-  var onResize = $$uisDebounce(function() {
-    ctrl.sizeSearchInput();
-  }, 50);
-
-  angular.element($window).bind('resize', onResize);
+  // var onResize = $$uisDebounce(function() {
+  //   ctrl.sizeSearchInput();
+  // }, 50);
+  //
+  // angular.element($window).bind('resize', onResize);
+  //
+  // $scope.$on('$destroy', function() {
+  //   ctrl.searchInput.off('keyup keydown tagged blur paste');
+  //   angular.element($window).off('resize', onResize);
+  // });
 
   $scope.$on('$destroy', function() {
     ctrl.searchInput.off('keyup keydown tagged blur paste');
-    angular.element($window).off('resize', onResize);
+  });
+
+  angular.element($window).bind('resize', function() {
+    ctrl.sizeSearchInput();
   });
 }]);

@@ -74,12 +74,12 @@ uis.directive('uiSelectSingle', ['$timeout','$compile', function($timeout, $comp
 
       element.parent().append(focusser);
       focusser.bind("focus", function(){
-        scope.$evalAsync(function(){
+        scope.$applyAsync(function(){
           $select.focus = true;
         });
       });
       focusser.bind("blur", function(){
-        scope.$evalAsync(function(){
+        scope.$applyAsync(function(){
           $select.focus = false;
         });
       });
@@ -89,7 +89,7 @@ uis.directive('uiSelectSingle', ['$timeout','$compile', function($timeout, $comp
           e.preventDefault();
           e.stopPropagation();
           $select.select(undefined);
-          scope.$apply();
+          scope.$applyAsync();
           return;
         }
 

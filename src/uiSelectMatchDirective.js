@@ -4,16 +4,14 @@ uis.directive('uiSelectMatch', ['uiSelectConfig', function(uiSelectConfig) {
     require: '^uiSelect',
     replace: true,
     transclude: true,
-    templateUrl: function(tElement) {
+    templateUrl: function(tElement, tAttrs) {
       // Needed so the uiSelect can detect the transcluded content
       tElement.addClass('ui-select-match');
 
-      var parent = tElement.parent();
       // Gets theme attribute from parent (ui-select)
-      var theme = getAttribute(parent, 'theme') || uiSelectConfig.theme;
-      var multi = angular.isDefined(getAttribute(parent, 'multiple'));
-
-      return theme + (multi ? '/match-multiple.tpl.html' : '/match.tpl.html');      
+      var theme = tElement.parent().attr('theme') || uiSelectConfig.theme;
+      var multi = tElement.parent().attr('multiple');
+      return tAttrs.templateUrl || theme + (multi ? '/match-multiple.tpl.html' : '/match.tpl.html');
     },
     link: function(scope, element, attrs, $select) {
       $select.lockChoiceExpression = attrs.uiLockChoice;
@@ -35,14 +33,14 @@ uis.directive('uiSelectMatch', ['uiSelectConfig', function(uiSelectConfig) {
     }
   };
 
-  function getAttribute(elem, attribute) {
-    if (elem[0].hasAttribute(attribute))
-      return elem.attr(attribute);
-
-    if (elem[0].hasAttribute('data-' + attribute))
-      return elem.attr('data-' + attribute);
-
-    if (elem[0].hasAttribute('x-' + attribute))
-      return elem.attr('x-' + attribute);
-  }
+  // function getAttribute(elem, attribute) {
+  //   if (elem[0].hasAttribute(attribute))
+  //     return elem.attr(attribute);
+  //
+  //   if (elem[0].hasAttribute('data-' + attribute))
+  //     return elem.attr('data-' + attribute);
+  //
+  //   if (elem[0].hasAttribute('x-' + attribute))
+  //     return elem.attr('x-' + attribute);
+  // }
 }]);

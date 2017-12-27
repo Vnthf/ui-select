@@ -1,12 +1,12 @@
 uis.directive('uiSelect',
-  ['$document', 'uiSelectConfig', 'uiSelectMinErr', 'uisOffset', '$compile', '$parse', '$timeout',
-  function($document, uiSelectConfig, uiSelectMinErr, uisOffset, $compile, $parse, $timeout) {
+  ['$document', 'uiSelectConfig', 'uiSelectMinErr', 'uisOffset', '$compile', '$parse', '$timeout', '$window',
+  function($document, uiSelectConfig, uiSelectMinErr, uisOffset, $compile, $parse, $timeout, $window) {
 
   return {
     restrict: 'EA',
     templateUrl: function(tElement, tAttrs) {
       var theme = tAttrs.theme || uiSelectConfig.theme;
-      return theme + (angular.isDefined(tAttrs.multiple) ? '/select-multiple.tpl.html' : '/select.tpl.html');
+      return tAttrs.templateUrl || theme + (angular.isDefined(tAttrs.multiple) ? '/select-multiple.tpl.html' : '/select.tpl.html');
     },
     replace: true,
     transclude: true,
@@ -60,6 +60,26 @@ uis.directive('uiSelect',
         $select.onSelectCallback = $parse(attrs.onSelect);
         $select.onRemoveCallback = $parse(attrs.onRemove);
 
+        // 기존의 tag가 같은지 비교를 angular.equals로만 비교했었으나 외부에서 주입할 수 있도록 수정
+        $select.isEqual = attrs.isEqualModel ?
+          _makeCustomEqualFunc(attrs.isEqualModel) :
+          function (value, other) {
+            return angular.equals(value, other);
+          };
+
+        function _makeCustomEqualFunc(isEqualModelString) {
+          $select.hasCustomEqual = true;
+          var isEqualModelCallback = $parse(isEqualModelString);
+          // (가 있으면 콜백 함수로 가정
+          return isEqualModelString.indexOf('(') === -1 ?
+            function (value, other) {
+              return value[isEqualModelString] === other[isEqualModelString];
+            } :
+            function (value, other) {
+              return isEqualModelCallback(scope.$parent, {value: value, other: other});
+            };
+        }
+
         //Limit the number of selections allowed
         $select.limit = (angular.isDefined(attrs.limit)) ? parseInt(attrs.limit, 10) : undefined;
 
@@ -76,6 +96,9 @@ uis.directive('uiSelect',
             element.removeAttr('tabindex');
           });
         }
+
+        // attribute 가 설정되어 있으면 true
+        $select.resetOnEsc = attrs.resetOnEsc;
 
         scope.$watch('searchEnabled', function() {
             var searchEnabled = scope.$eval(attrs.searchEnabled);
@@ -115,6 +138,15 @@ uis.directive('uiSelect',
           }
         });
 
+        attrs.$observe('taggingInvalid', function () {
+          if (attrs.taggingInvalid !== undefined) {
+            var taggingInvalidEval = scope.$eval(attrs.taggingInvalid);
+            $select.taggingInvalid = {isActivated: true, value: taggingInvalidEval};
+          } else {
+            $select.taggingInvalid = {isActivated: false, value: undefined};
+          }
+        });
+
         attrs.$observe('taggingLabel', function() {
           if(attrs.tagging !== undefined )
           {
@@ -141,7 +173,7 @@ uis.directive('uiSelect',
         if (angular.isDefined(attrs.autofocus)){
           $timeout(function(){
             $select.setFocus();
-          });
+          }, 0, false);
         }
 
         //Gets focus based on scope event name (e.g. focus-on='SomeEventName')
@@ -149,7 +181,7 @@ uis.directive('uiSelect',
           scope.$on(attrs.focusOn, function() {
               $timeout(function(){
                 $select.setFocus();
-              });
+              }, 0, false);
           });
         }
 
@@ -177,7 +209,7 @@ uis.directive('uiSelect',
             } else {
               skipFocusser = true;
             }
-            $select.close(skipFocusser);
+            $select.close({skipFocusser: skipFocusser});
             scope.$digest();
           }
           $select.clickTriggeredSelect = false;
@@ -215,17 +247,41 @@ uis.directive('uiSelect',
           }
           element.querySelectorAll('.ui-select-choices').replaceWith(transcludedChoices);
 
-          var transcludedNoChoice = transcluded.querySelectorAll('.ui-select-no-choice');
-          transcludedNoChoice.removeAttr('ui-select-no-choice'); //To avoid loop in case directive as attr
-          transcludedNoChoice.removeAttr('data-ui-select-no-choice'); // Properly handle HTML5 data-attributes
-          if (transcludedNoChoice.length == 1) {
-            element.querySelectorAll('.ui-select-no-choice').replaceWith(transcludedNoChoice);
+          var transcludedHeader = transcluded.querySelectorAll('.ui-select-header');
+          transcludedHeader.removeAttr('ui-select-header'); // To avoid loop in case directive as attr
+          transcludedHeader.removeAttr('data-ui-select-header'); // Properly handle HTML5 data-attributes
+          if (transcludedHeader.length == 1) {
+            element.querySelectorAll('.ui-select-header').replaceWith(transcludedHeader);
+          } else {
+            element.querySelectorAll('.ui-select-header').remove();
+          }
+
+          var transcludedFooter = transcluded.querySelectorAll('.ui-select-footer');
+          transcludedFooter.removeAttr('ui-select-footer'); // To avoid loop in case directive as attr
+          transcludedFooter.removeAttr('data-ui-select-footer'); // Properly handle HTML5 data-attributes
+          if (transcludedFooter.length == 1) {
+            element.querySelectorAll('.ui-select-footer').replaceWith(transcludedFooter);
+          } else {
+            element.querySelectorAll('.ui-select-footer').remove();
           }
         });
+
+        //Debounce - avoid Frequent Events when append to body
+        var _winResizeDelayPromise;
+        function windowResizeHandler() {
+          $timeout.cancel(_winResizeDelayPromise);
+          if ($select.open) {
+            _winResizeDelayPromise = $timeout(function () {
+              resetDropdown();
+              positionDropdown();
+            }, 50, false);
+          }
+        }
 
         // Support for appending the select field to the body when its open
         var appendToBody = scope.$eval(attrs.appendToBody);
         if (appendToBody !== undefined ? appendToBody : uiSelectConfig.appendToBody) {
+          angular.element($window).on('resize', windowResizeHandler);
           scope.$watch('$select.open', function(isOpen) {
             if (isOpen) {
               positionDropdown();
@@ -238,6 +294,7 @@ uis.directive('uiSelect',
           // it might stick around when the user routes away or the select field is otherwise removed
           scope.$on('$destroy', function() {
             resetDropdown();
+            angular.element($window).off('resize', windowResizeHandler);
           });
         }
 
@@ -364,7 +421,7 @@ uis.directive('uiSelect',
 
               // Display the dropdown once it has been positioned.
               dropdown[0].style.opacity = 1;
-            });
+            }, 0, false);
           } else {
               if (dropdown === null || dropdown.length === 0) {
                 return;

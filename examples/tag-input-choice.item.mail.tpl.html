@@ -1,0 +1,31 @@
+<a ng-switch="::searchUser.type">
+    <span ng-switch-default>
+        <span dooray-member-image image-url="searchUser[searchUser.type].profileImage.url"
+              one-time-binding="true"
+              email-address="searchUser[searchUser.type].emailAddress"
+              size="16" class="profile profile-picture"></span><!--
+        --><span class="guest" ng-if="searchUser[searchUser.type].tenantMemberRole === 'guest'" translate>service.common.tag_input.user~~손님</span><!--
+        --><span class="name" ng-bind-html="searchUser[searchUser.type].name || searchUser[searchUser.type].emailAddress | escapeHighlight: $select.search"></span><!--
+        --><span ng-if="searchUser[searchUser.type].nickname" class="nickname" ng-bind-html="searchUser[searchUser.type].nickname | escapeHighlight: $select.search"></span><!--
+        --><span ng-if="searchUser[searchUser.type].nativeName" class="native-name" ng-bind-html="searchUser[searchUser.type].nativeName | escapeHighlight: $select.search"></span><!--
+        --><span ng-if="searchUser[searchUser.type].englishName" class="english-name" ng-bind-html="searchUser[searchUser.type].englishName | escapeHighlight: $select.search"></span><!--
+        --><span class="position" ng-if="searchUser[searchUser.type].position" ng-bind="searchUser[searchUser.type].position"></span><!--
+        --><span class="department" ng-if="searchUser[searchUser.type].department" ng-bind="searchUser[searchUser.type].department"></span><!--
+        --><span class="email" ng-if="searchUser.type !=='emailUser' && searchUser[searchUser.type].name" ng-bind-html="searchUser[searchUser.type].emailAddress"></span>
+    </span>
+    <span ng-switch-when="distributionList">
+        <span class="profile v-icons-group-profile"></span><!--
+        --><span class="name" ng-bind-html="searchUser.distributionList.name | escapeHighlight: $select.search"></span><!--
+        --><span class="organization-name" ng-if="searchUser.distributionList.organizationName" ng-bind-html="searchUser.distributionList.organizationName | escapeHighlight: $select.search"></span><!--
+        --><span class="email" ng-bind-html="searchUser.distributionList.emailAddress | escapeHighlight: $select.search"></span>
+    </span>
+    <span ng-switch-when="recent">
+        <span dooray-member-image
+              one-time-binding="true"
+              email-address="searchUser.recent.emailAddress"
+              size="16" class="profile profile-picture"></span><!--
+        --><span class="name" ng-bind-html="searchUser.recent.name | escapeHighlight: $select.search"></span><!--
+        --><span class="email" ng-bind-html="searchUser.recent.emailAddress | escapeHighlight: $select.search"></span>
+        <span class="close-tag dcon-x-small pull-right" ng-if="$select.search.length === 0" ng-click="$select.removeRecentUser($event, $select.items, searchUser.recent.id)" tabindex="-1"></span>
+    </span>
+</a>

@@ -126,7 +126,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
       };
 
       ctrl.activeItem = function (i) {
-
+        $select.close();
         if (ctrl.isPressShiftKey) {
           var min = Math.min.apply(null, ctrl.activeMatchIndexes);
           var max = Math.min.apply(null, ctrl.activeMatchIndexes);
@@ -396,6 +396,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         for (var i = 0; i < $select.selected.length; i++) {
           $selectMultiple.activeMatchIndexes.push(i);
         }
+        $select.close();
         $select.searchInput.trigger('blur');
         return true;
       }

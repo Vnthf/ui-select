@@ -1,55 +1,27 @@
 <span class="ui-select-match">
-    <li class="ui-select-match-item" ng-repeat="$item in $select.selected track by ($item[$item.type].name + $item[$item.type].emailAddress)"
+    <li class="ui-select-match-item" ng-repeat="$item in $select.selected track by ($item.email)"
         ng-class="{'select2-locked':$select.isLocked(this, $index)}"
         ng-switch="$item.type" draggable="true">
         <span ng-switch-default
               class="alert alert-warning alert-dismissible ui-select-tag-badge ui-select-tag-badge-mail" role="alert"
               ng-class="[$item.type, $selectMultiple.isActiveIndex($index) ? 'select':'', $selectMultiple.isInvalid($item) ? 'invalid': '']"
-              profile-layer-by-email="{{::$item[$item.type].emailAddress}}" profile-layer-append-to-body="true"
-              hide-popover="$selectMultiple.isInvalid($item)"
               user-name="{{::$item[$item.type].name}}"
               ng-switch="$item.type">
-            <span ng-switch-default class="value">{{::$item[$item.type] | displayAddressInMail}}</span>
+            <span ng-switch-default class="value">{{::$item.email}}</span>
             <!-- 메일에서 같은 이메일을 2번 붙여넣을 때에 대한 예외처리 추가 drag & drop에 대한 예외로 track by시에 true가 되게 수정-->
             <span ng-switch-when="emailUser" class="value inline-editor-wrap">
-                <span ng-if="!$item._editMode" class="value">{{::$item[$item.type] | displayAddressInMail}}</span>
+                <span ng-if="!$item._editMode" class="value">{{::$item.email}}</span>
                 <span ng-if="$item._editMode">
                     <span class="phantom-value">{{$item._inputModel}}</span>
                     <input type="text" class="input-value" ng-model="$item._inputModel"
-                           focus-me="::true"
                            ng-change="$select.sizeSearchInput()"
                            ng-keydown="$selectMultiple.onKeydownEditInput($event)"
-                           ng-blur="$selectMultiple.editItem($item._inputModel, $item, $index)"
-                           ignore-composition-event/>
+                           ng-blur="$selectMultiple.editItem($item._inputModel, $item, $index)"/>
                 </span>
             </span>
             <a ng-if="!$item._editMode" href="#" class="transparent-btn tag-edit-btn v2-icons-edit" tabindex="-1"
-               ng-click="$item._inputModel=($item[$item.type] | addressTextFormat);$item._editMode=true;"></a>
+               ng-click="$item._inputModel=($item[$item.type]);$item._editMode=true;"></a>
             <a ng-if="!$item._editMode" href="#" class="close-tag dcon-x-small" ng-click="$selectMultiple.removeChoice($index)" tabindex="-1"></a>
-        </span>
-        <span ng-switch-when="member"
-              class="alert member alert-warning alert-dismissible ui-select-tag-badge ui-select-tag-badge-mail" role="alert"
-              ng-class="{'select': $selectMultiple.isActiveIndex($index)}"
-              profile-layer="{{::$item[$item.type].id}}" profile-layer-append-to-body="true"
-              user-name="{{::$item[$item.type].name}}">
-              <span class="value">{{::$item[$item.type] | displayAddressInMail}}</span>
-              <a href="#" class="close-tag dcon-x-small" ng-click="$selectMultiple.removeChoice($index)" tabindex="-1"></a>
-        </span>
-        <span ng-switch-when="distributionList"
-              class="alert alert-warning alert-dismissible ui-select-tag-badge ui-select-tag-badge-mail" role="alert"
-              ng-class="[$item.type, $selectMultiple.isActiveIndex($index) ? 'select':'']">
-            <button type="button"
-                    class="dooray-btn no-present-btn extract-items-btn"
-                    ng-click="$select.extractGroupToItems($select.selected, $item, $item.distributionList.distributionItemList, $selectMultiple.updateModel)">
-                <i class="fa fa-plus-square"><span class="blind" translate>mail.common.tag_input.user~~개별 주소</span></i>
-            </button>
-            <span class="value">{{::$item[$item.type] | displayAddressInMail}}</span>
-            <span class="value"
-                  uib-tooltip="{{$item.distributionList.allMemberTooltip}}"
-                  tooltip-append-to-body="true" tooltip-placement="bottom" tooltip-class="dooray-tag-input-tooltip">
-                <span class="badge" ui-select-resize-when="$item.distributionList.distributionItemList.length || '0'" ng-bind="$item.distributionList.distributionItemList.length || '0'"></span>
-            </span>
-            <a href="#" class="close-tag dcon-x-small" ng-click="$selectMultiple.removeChoice($index)" tabindex="-1"></a>
         </span>
     </li>
 </span>

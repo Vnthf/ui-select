@@ -1,10 +1,157 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="demo">
 <head>
-    <meta charset="UTF-8">
-    <title>$Title$</title>
+    <meta charset="utf-8">
+    <title>AngularJS ui-select</title>
+
+    <!--
+      IE8 support, see AngularJS Internet Explorer Compatibility http://docs.angularjs.org/guide/ie
+      For Firefox 3.6, you will also need to include jQuery and ECMAScript 5 shim
+    -->
+    <!--[if lt IE 9]>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/es5-shim/2.2.0/es5-shim.js"></script>
+    <script>
+        document.createElement('ui-select');
+        document.createElement('ui-select-match');
+        document.createElement('ui-select-choices');
+    </script>
+    <![endif]-->
+
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.0/angular.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.0/angular-sanitize.js"></script>
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.css">
+
+    <!-- ui-select files -->
+    <script src="../dist/select.js"></script>
+    <link rel="stylesheet" href="../examples/demo-dooray-multi-input.css">
+
+    <script src="demo.js"></script>
+
+    <!-- Select2 theme -->
+    <!--<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/select2/3.4.5/select2.css">-->
+
+    <!--
+      Selectize theme
+      Less versions are available at https://github.com/brianreavis/selectize.js/tree/master/dist/less
+    -->
+    <!--<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.8.5/css/selectize.default.css">-->
+    <!-- <link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.8.5/css/selectize.bootstrap2.css"> -->
+    <!-- <link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.8.5/css/selectize.bootstrap3.css"> -->
+
+    <style>
+        body {
+            padding: 15px;
+        }
+
+        .select2 > .select2-choice.ui-select-match {
+            /* Because of the inclusion of Bootstrap */
+            /*height: 29px;*/
+        }
+
+        .selectize-control > .selectize-dropdown {
+            top: 36px;
+        }
+    </style>
 </head>
-<body>
-$END$
+
+<body ng-controller="DemoCtrl">
+<script src="demo.js"></script>
+
+<button class="btn btn-default btn-xs" ng-click="enable()">Enable ui-select</button>
+<button class="btn btn-default btn-xs" ng-click="disable()">Disable ui-select</button>
+<button class="btn btn-default btn-xs" ng-click="clear()">Clear ng-model</button>
+
+<!--  <h1>Bootstrap theme</h1>
+ <ui-select ng-model="address.selected"
+            theme="bootstrap"
+            ng-disabled="disabled"
+            reset-search-input="false"
+            style="width: 300px;">
+   <ui-select-match placeholder="Enter an address...">{{$select.selected.formatted_address}}</ui-select-match>
+   <ui-select-choices repeat="address in addresses track by $index"
+            refresh="refreshAddresses($select.search)"
+            refresh-delay="0">
+     <div ng-bind-html="address.formatted_address | highlight: $select.search"></div>
+   </ui-select-choices>
+ </ui-select>
+ <p>Selected: {{address.selected.formatted_address}}</p>
+
+ <h3>Multi select</h3>
+ <ui-select multiple ng-model="friends" theme="bootstrap" ng-disabled="disabled" style="width: 300px;">
+   <ui-select-match placeholder="Search and select friends...">{{$item.name}}</ui-select-match>
+   <ui-select-choices repeat="person in people | propsFilter: {name: $select.search, age: $select.search}">
+     <div ng-bind-html="person.name | highlight: $select.search"></div>
+     <small>
+       age: <span ng-bind-html="''+person.age | highlight: $select.search"></span>
+     </small>
+   </ui-select-choices>
+ </ui-select>
+ <p>Selected: {{friends|json}}</p>
+-->
+<!--   <ui-select ng-model="person.selected" theme="select2" ng-disabled="disabled" style="min-width: 300px;">
+    <ui-select-match placeholder="Select a person in the list or search his name/age...">{{$select.selected.name}}</ui-select-match>
+    <ui-select-choices repeat="person in people | propsFilter: {name: $select.search, age: $select.search}">
+      <div ng-bind-html="person.name | highlight: $select.search"></div>
+      <small>
+        email: {{person.email}}
+        age: <span ng-bind-html="''+person.age | highlight: $select.search"></span>
+      </small>
+    </ui-select-choices>
+  </ui-select>
+  <p>Selected: {{person.selected}}</p> -->
+<!--   <h1>Selectize theme</h1>
+  <ui-select ng-model="country.selected" theme="selectize" ng-disabled="disabled" style="width: 300px;">
+    <ui-select-match placeholder="Select or search a country in the list...">{{$select.selected.name}}</ui-select-match>
+    <ui-select-choices repeat="country in countries | filter: $select.search">
+      <span ng-bind-html="country.name | highlight: $select.search"></span>
+      <small ng-bind-html="country.code | highlight: $select.search"></small>
+    </ui-select-choices>
+  </ui-select>
+  <p>Selected: {{country.selected}}</p> -->
+
+<h1>Multi Selection Demos</h1>
+
+<h3>Array of strings</h3>
+
+<ui-select multiple flex
+           ui-select-moveable
+           ng-model="multipleDemo.selectedPeople"
+           tagging="multipleDemo.TagInputMailHelper.allowEmailUser"
+           tagging-label="false"
+           tagging-tokens=";|,|ENTER|TAB"
+           tagging-invalid="'_invalid'"
+           ng-disabled="multipleDemo.isFormReadOnly()"
+           is-equal-model="multipleDemo.isEqualEmailAddress(value, other)"
+           on-select="multipleDemo.onSelect($item)"
+           on-remove="multipleDemo.onRemove()">
+    <ui-select-match placeholder="{{::'mail.writeform~~이름, 메일주소를 입력해 주세요.'}}"
+                     template-url="./tag-input-mail.match.tpl.html">
+    </ui-select-match>
+    <ui-select-choices repeat="searchUser in people"
+                       template-url="./tag-input-choice.tpl.html">
+        <a ng-switch="::searchUser.type">
+            <span ng-switch-default>
+                <span class="name" ng-bind-html="searchUser.name"></span><!--
+                 --><span class="position" ng-bind="searchUser.position"></span><!--
+                --><span class="department" ng-bind="searchUser.email"></span>
+            </span>
+        </a>
+    </ui-select-choices>
+</ui-select>
+
+
+
+<ui-select multiple ng-model="multipleDemo.selectedPeople" theme="bootstrap" ng-disabled="disabled" sortable="true" close-on-select="false" style="width: 800px;">
+    <ui-select-match placeholder="Select person...">{{$item.name}} &lt;{{$item.email}}&gt;</ui-select-match>
+    <ui-select-choices repeat="person in people | propsFilter: {name: $select.search, age: $select.search}">
+        <div ng-bind-html="person.name | highlight: $select.search"></div>
+        <small>
+            email: {{person.email}}
+            age: <span ng-bind-html="''+person.age | highlight: $select.search"></span>
+        </small>
+    </ui-select-choices>
+</ui-select>
+<p>Selected: {{multipleDemo.selectedPeople}}</p>
 </body>
 </html>

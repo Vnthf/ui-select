@@ -302,7 +302,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
           // var tagged = false; //Checkme
           if (isSelectAll) {
             processed = _selectAll();
-          } else if (e.which === KEY.LEFT) {
+          } else if (e.which === KEY.LEFT || e.which === KEY.BACKSPACE) {
             processed = _selectLast();
           }
           if (processed && key != KEY.TAB) {
@@ -329,7 +329,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         $select.close();
 
         var isMultiActive = e.shiftKey,
-            key = e.which;
+          key = e.which;
 
         var length = $select.selected.length,
           // none  = -1,
@@ -584,7 +584,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
             return $selectMultiple.activeMatchIndexes.indexOf(index) > -1;
           })
         });
-        if(data) {
+        if (data) {
           UTIL.copyToClipboard(data);
         }
       }

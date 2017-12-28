@@ -462,8 +462,8 @@ uis.controller('uiSelectCtrl',
             $keyword: ctrl.keyword,
             $item: item,
             $model: ctrl.parserResult.modelMapper($scope, locals)
-          }, 0, false);
-        });
+          });
+        }, 0, false);
 
         if (ctrl.closeOnSelect) {
           // select무한이 반복하는 현상 방어

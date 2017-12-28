@@ -60,6 +60,7 @@ uis.directive('uiSelect',
 
         $select.onSelectCallback = $parse(attrs.onSelect);
         $select.onRemoveCallback = $parse(attrs.onRemove);
+        $select.onCopyItemsCallback = $parse(attrs.onCopyItems);
 
         // 기존의 tag가 같은지 비교를 angular.equals로만 비교했었으나 외부에서 주입할 수 있도록 수정
         $select.isEqual = attrs.isEqualModel ?

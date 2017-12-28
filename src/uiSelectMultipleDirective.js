@@ -321,12 +321,15 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
       }
 
       // Handles selected options in "multiple" mode
-      function _handleMatchSelection(key, isMultiActive) {
+      function _handleMatchSelection(e) {
         if ($selectMultiple.activeMatchIndexes.length === 0) {
           return;
         }
 
         $select.close();
+
+        var isMultiActive = e.shiftKey,
+            key = e.which;
 
         var length = $select.selected.length,
           // none  = -1,
@@ -372,6 +375,18 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
               $selectMultiple.removeChoice($selectMultiple.activeMatchIndexes);
               return last;
               break;
+            case KEY.C:
+              if (KEY.isCopy(e, key)) {
+                var data = $select.onCopyItemsCallback(scope, {
+                    $items: $select.selected.filter(function (value, index) {
+                      return $selectMultiple.activeMatchIndexes.indexOf(index) > -1;
+                    })
+                  });
+                if(data) {
+                  UTIL.copyToClipboard(data);
+                }
+              }
+              return;
           }
         }
 
@@ -587,9 +602,9 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
 
       function _onDocumentKeydown(e) {
         _toggleKeyPress(e);
-        if (KEY.isHorizontalMovement(e.which)) {
+        if (KEY.isAllowControlKey(e.which)) {
           scope.$applyAsync(function () {
-            _handleMatchSelection(e.which, e.shiftKey);
+            _handleMatchSelection(e);
           });
         }
       }

@@ -375,18 +375,6 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
               $selectMultiple.removeChoice($selectMultiple.activeMatchIndexes);
               return last;
               break;
-            case KEY.C:
-              if (KEY.isCopy(e, key)) {
-                var data = $select.onCopyItemsCallback(scope, {
-                    $items: $select.selected.filter(function (value, index) {
-                      return $selectMultiple.activeMatchIndexes.indexOf(index) > -1;
-                    })
-                  });
-                if(data) {
-                  UTIL.copyToClipboard(data);
-                }
-              }
-              return;
           }
         }
 
@@ -590,6 +578,17 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         return dupeIndex;
       }
 
+      function _copySelection() {
+        var data = $select.onCopyItemsCallback(scope, {
+          $items: $select.selected.filter(function (value, index) {
+            return $selectMultiple.activeMatchIndexes.indexOf(index) > -1;
+          })
+        });
+        if(data) {
+          UTIL.copyToClipboard(data);
+        }
+      }
+
       //Ctrl, Shift + 마우스를 통한 multi select
       $document.on('keydown', _onDocumentKeydown);
       $document.on('keyup', _toggleKeyPress);
@@ -606,6 +605,8 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
           scope.$applyAsync(function () {
             _handleMatchSelection(e);
           });
+        } else if (KEY.isCopy(e, e.which)) {
+          _copySelection();
         }
       }
 

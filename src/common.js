@@ -47,7 +47,7 @@ var KEY = {
       return ~[KEY.UP, KEY.DOWN].indexOf(k);
     },
     isAllowControlKey: function (k){
-      return ~[KEY.LEFT,KEY.RIGHT,KEY.BACKSPACE,KEY.DELETE,KEY.C].indexOf(k);
+      return ~[KEY.LEFT,KEY.RIGHT,KEY.BACKSPACE,KEY.DELETE].indexOf(k);
     },
     isSelectAll: function (event, k) {
       return this.isPressedCtrlKey(event) && k === KEY.A;

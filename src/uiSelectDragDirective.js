@@ -16,18 +16,23 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         DRAG_ITEM_TYPE = 'ui-select-item';
 
       element.on('dragstart', '.' + DRAG_ITEM_CLASS, function (event) {
+        var indexes = _getDragIndexes($(this).index()),
+          items = $select.selected.filter(function (v, i) {
+            return indexes.indexOf(i) > -1;
+          });
+
         isDragging = true;
         uiSelectDragFactory.dropComplete = false;
         event.dataTransfer.effectAllowed = "move";
-        var item = $select.selected[$(this).index()];
-        event.dataTransfer.setData('text', DRAG_ITEM_TYPE + JSON.stringify(item));
+        event.dataTransfer.setDragImage(_getDragImage(indexes.length), -10, -10);
+        event.dataTransfer.setData('text', DRAG_ITEM_TYPE + JSON.stringify(items));
       });
 
       element.on('dragend', '.' + DRAG_ITEM_CLASS, function (event) {
         isDragging = false;
         event.currentTarget.classList.remove(DROPPABLE_CLASS);
         if (uiSelectDragFactory.dropComplete) {
-          scope.$selectMultiple.removeChoice($(this).index());
+          scope.$selectMultiple.removeChoice(_getDragIndexes($(this).index()));
         }
       });
 
@@ -42,14 +47,16 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         }
         uiSelectDragFactory.dropComplete = true;
 
-        var item = JSON.parse(event.dataTransfer.getData('text').substr(DRAG_ITEM_TYPE.length));
-        for (var i = 0; i < $select.selected.length; i++) {
-          if ($select.isEqual(item, $select.selected[i])) {
-            return;
+        var items = JSON.parse(event.dataTransfer.getData('text').substr(DRAG_ITEM_TYPE.length));
+        for (var j = 0; j < items.length; j++) {
+          for (var i = 0; i < $select.selected.length; i++) {
+            if ($select.isEqual(items[j], $select.selected[i])) {
+              return;
+            }
           }
+          $select.select(items[j]);
         }
 
-        $select.select(item);
       });
 
       element.on('dragenter', function (event) {
@@ -91,6 +98,26 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         element.off('dragover');
       });
 
+      function _getDragIndexes(targetIndex) {
+        return scope.$selectMultiple.activeMatchIndexes.length > 0 ?
+          scope.$selectMultiple.activeMatchIndexes : [targetIndex];
+      }
+
+      //TODO: option 으로 변경
+      function _getDragImage(length) {
+        var drag_icon = document.createElement("div");
+        drag_icon.innerText = length;
+        drag_icon.className = "drag-icon";
+        drag_icon.style.position = "absolute";
+        drag_icon.style.top = "-100px";
+        drag_icon.style.right = "0px";
+        drag_icon.style.padding = "5px 20px";
+        drag_icon.style.background = "#384260";
+        drag_icon.style.color = "#fff";
+        drag_icon.style.zIndex = "9999";
+        document.body.appendChild(drag_icon);
+        return drag_icon;
+      }
     }
   };
 }]);

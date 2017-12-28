@@ -39,6 +39,7 @@ uis.directive('uiSelect',
         var $select = ctrls[0];
         var ngModel = ctrls[1];
 
+        $select.$el = element;
         $select.generatedId = uiSelectConfig.generateId();
         $select.baseTitle = attrs.title || 'Select box';
         $select.focusserTitle = $select.baseTitle + ' focus';

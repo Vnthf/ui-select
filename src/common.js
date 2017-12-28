@@ -49,7 +49,10 @@ var KEY = {
       return ~[KEY.LEFT,KEY.RIGHT,KEY.BACKSPACE,KEY.DELETE].indexOf(k);
     },
     isSelectAll: function (event, k) {
-      return (isMacOS ? event.metaKey : event.ctrlKey) && k === KEY.A;
+      return this.isPressedCtrlKey(event) && k === KEY.A;
+    },
+    isPressedCtrlKey: function (event) {
+      return isMacOS ? event.metaKey : event.ctrlKey;
     },
     toSeparator: function (k) {
       var sep = {ENTER:"\n",TAB:"\t",SPACE:" "}[k];

@@ -96,7 +96,7 @@ uis.controller('uiSelectCtrl',
       //reset activeIndex
       if (ctrl.selected && ctrl.items.length && !ctrl.multiple) {
         ctrl.activeIndex = _findIndex(ctrl.items, function(item){
-          return ctrl.equals(this, item);
+          return ctrl.isEqual(this, item);
         }, ctrl.selected);
       }
     }

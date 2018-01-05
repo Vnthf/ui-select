@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2017-12-28T13:14:37.836Z
+ * Version: 0.16.1 - 2017-12-29T02:49:42.487Z
  * License: MIT
  */
 
@@ -413,7 +413,7 @@ uis.controller('uiSelectCtrl',
       //reset activeIndex
       if (ctrl.selected && ctrl.items.length && !ctrl.multiple) {
         ctrl.activeIndex = _findIndex(ctrl.items, function(item){
-          return ctrl.equals(this, item);
+          return ctrl.isEqual(this, item);
         }, ctrl.selected);
       }
     }

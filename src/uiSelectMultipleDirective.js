@@ -127,7 +127,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
 
       ctrl.activeItem = function (i) {
         $select.close();
-        if (ctrl.isPressShiftKey) {
+        if (ctrl.isPressShiftKey && ctrl.activeMatchIndexes.length > 0) {
           var min = Math.min.apply(null, ctrl.activeMatchIndexes);
           var max = Math.min.apply(null, ctrl.activeMatchIndexes);
           if (i < min) {

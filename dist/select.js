@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2018-01-10T09:55:42.949Z
+ * Version: 0.16.1 - 2018-01-10T10:12:56.610Z
  * License: MIT
  */
 
@@ -2095,7 +2095,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
           // var tagged = false; //Checkme
           if (isSelectAll) {
             processed = _selectAll();
-          } else if ((e.which === KEY.LEFT || e.which === KEY.BACKSPACE) && $selectMultiple.activeMatchIndexes.length !== 0) {
+          } else if ((e.which === KEY.LEFT || e.which === KEY.BACKSPACE) && $select.selected.length > 0) {
             processed = _selectLast();
           }
           if (processed && key != KEY.TAB) {

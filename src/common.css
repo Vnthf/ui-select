@@ -270,6 +270,43 @@ body > .ui-select-bootstrap.open {
     outline: 1px solid #015aff;
 }
 
+.ui-select-droppable .ui-select-match-item:last-child:after {
+    display: inline-block;
+    content: '';
+    height: 23px;
+    position: absolute;
+    width: 2px;
+    right: -3px;
+    top: 0;
+    background-color: #015aff;
+}
+
 .ui-select-moveable .ui-select-match-item {
     cursor: default;
 }
+
+.ui-select-moveable .ui-select-item-drag-over-right:after {
+    display: inline-block;
+    content: '';
+    height: 23px;
+    position: absolute;
+    width: 2px;
+    right: -3px;
+    top: 0;
+    background-color: #015aff;
+}
+.ui-select-moveable .ui-select-item-drag-over-left:before {
+    display: inline-block;
+    content: '';
+    height: 23px;
+    position: absolute;
+    width: 2px;
+    left: -3px;
+    top: 0;
+    background-color: #015aff;
+}
+
+.ui-select-moveable.ui-select-dragging .ui-select-match-item .select {
+    opacity: 0.6;
+}
+

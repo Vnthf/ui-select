@@ -11,29 +11,57 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       element.addClass('ui-select-moveable');
       //현재 select가 drag중인지 체크
       var isDragging = false,
+
+        dragoverItemIndex = null,
+
         DROPPABLE_CLASS = 'ui-select-droppable',
-        DRAG_ITEM_CLASS = 'ui-select-match-item',
-        DRAG_ITEM_TYPE = 'ui-select-item';
+        DRAGGABLE_ITEM_CLASS = 'ui-select-match-item',
+        DRAGGING_CLASS = 'ui-select-dragging',
+        DRAGOVER_LEFT = 'ui-select-item-drag-over-left',
+        DRAGOVER_RIGHT = 'ui-select-item-drag-over-right',
+        DRAG_DATA_PREFIX = 'ui-select-item';
 
-      element.on('dragstart', '.' + DRAG_ITEM_CLASS, function (event) {
-        var indexes = _getDragIndexes($(this).index()),
-          items = $select.selected.filter(function (v, i) {
-            return indexes.indexOf(i) > -1;
-          });
-
+      element.on('dragstart', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        var items = scope.$selectMultiple.getActiveItems(_getDragIndexes($(this).index()));
         isDragging = true;
         uiSelectDragFactory.dropComplete = false;
+        uiSelectDragFactory.currentElement = false;
+        dragoverItemIndex = 0;
+        element[0].classList.add(DRAGGING_CLASS);
         event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setDragImage(_getDragImage(indexes.length), -10, -10);
-        event.dataTransfer.setData('text', DRAG_ITEM_TYPE + JSON.stringify(items));
+        event.dataTransfer.setDragImage(_getDragImage(items.length), -10, -10);
+        event.dataTransfer.setData('text', DRAG_DATA_PREFIX + JSON.stringify(items));
       });
 
-      element.on('dragend', '.' + DRAG_ITEM_CLASS, function (event) {
-        isDragging = false;
-        event.currentTarget.classList.remove(DROPPABLE_CLASS);
-        if (uiSelectDragFactory.dropComplete) {
+      element.on('dragend', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        element[0].classList.remove(DRAGGING_CLASS);
+        event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
+        if (uiSelectDragFactory.dropComplete && !uiSelectDragFactory.currentElement) {
           scope.$selectMultiple.removeChoice(_getDragIndexes($(this).index()));
+          scope.$selectMultiple.activeMatchIndexes = [];
         }
+        isDragging = false;
+      });
+
+      element.on('drop', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
+      });
+
+      element.on('dragleave', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
+      });
+
+      element.on('dragover', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
+        if(_getOffset(event) > (this.offsetWidth / 2)) {
+          event.currentTarget.classList.add(DRAGOVER_RIGHT);
+          dragoverItemIndex = $(this).index() + 1;
+        } else {
+          event.currentTarget.classList.add(DRAGOVER_LEFT);
+          dragoverItemIndex = $(this).index();
+        }
+        event.preventDefault();
+        event.stopPropagation();
       });
 
       element.on('drop', function (event) {
@@ -45,17 +73,24 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
           uiSelectDragFactory.dropComplete = false;
           return true;
         }
+
+        //같은 ui-select 내부
+        if (isDragging) {
+          uiSelectDragFactory.currentElement = true;
+        }
+
         uiSelectDragFactory.dropComplete = true;
 
-        var items = JSON.parse(event.dataTransfer.getData('text').substr(DRAG_ITEM_TYPE.length));
-        for (var j = 0; j < items.length; j++) {
-          for (var i = 0; i < $select.selected.length; i++) {
-            if ($select.isEqual(items[j], $select.selected[i])) {
-              return;
-            }
-          }
-          $select.select(items[j]);
+        var items = JSON.parse(event.dataTransfer.getData('text').substr(DRAG_DATA_PREFIX.length)),
+          option = {index: dragoverItemIndex};
+        if(isDragging) {
+          option.smallerIndexNum = scope.$selectMultiple.activeMatchIndexes.filter(function(i) {
+            return i < dragoverItemIndex
+          }).length;
         }
+        $select.select(items, option);
+        dragoverItemIndex -= option.smallerIndexNum || 0;
+        scope.$selectMultiple.activeMatchIndexes = _getMovedMatchIndex(items.length);
 
       });
 
@@ -64,6 +99,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         event.currentTarget.classList.add(DROPPABLE_CLASS);
         return true;
       });
+
 
 
       element.on('dragleave', function (event) {
@@ -77,16 +113,14 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         event.preventDefault();
         event.currentTarget.classList.add(DROPPABLE_CLASS);
         event.dataTransfer.dropEffect = "move";
+        dragoverItemIndex = element.find('.' + DRAGGABLE_ITEM_CLASS).length;
         return true;
       });
 
       //dragged인 아이템이 같은 컴퍼넌트가 아니고 type이 ui-select일 경우
       function isAllowDrop(event) {
-        if (isDragging) {
-          return false;
-        }
         var text = event.dataTransfer.getData('text');
-        return text && (text.substr(0, DRAG_ITEM_TYPE.length) === DRAG_ITEM_TYPE);
+        return text && (text.substr(0, DRAG_DATA_PREFIX.length) === DRAG_DATA_PREFIX);
       }
 
       scope.$on('$destroy', function () {
@@ -99,8 +133,10 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       });
 
       function _getDragIndexes(targetIndex) {
-        return scope.$selectMultiple.activeMatchIndexes.length > 0 ?
-          scope.$selectMultiple.activeMatchIndexes : [targetIndex];
+        if(scope.$selectMultiple.activeMatchIndexes.indexOf(targetIndex) < 0) {
+          scope.$selectMultiple.activeMatchIndexes = [targetIndex]
+        }
+        return scope.$selectMultiple.activeMatchIndexes;
       }
 
       //TODO: option 으로 변경
@@ -117,6 +153,18 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         drag_icon.style.zIndex = "9999";
         document.body.appendChild(drag_icon);
         return drag_icon;
+      }
+
+      function _getOffset(e) {
+        return e.offsetX || e.layerX || (e.originalEvent ? e.originalEvent.offsetX : 0);
+      }
+
+      function _getMovedMatchIndex(length) {
+        var list = [];
+        for (var i = dragoverItemIndex; i < dragoverItemIndex + length; i++) {
+          list.push(i);
+        }
+        return list;
       }
     }
   };

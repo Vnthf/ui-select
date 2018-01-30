@@ -377,8 +377,16 @@ uis.controller('uiSelectCtrl',
   };
 
   function _selectArrayItem(itemList, option) {
-    angular.forEach(itemList, function (item) {
-      item && ctrl.select(item, option);
+    angular.forEach(itemList, function (item, index) {
+      var _option = angular.copy(option);
+      if(angular.isNumber(option.index)) {
+        if(angular.isNumber(option.smallerIndexNum)) {
+          _option.index = index < option.smallerIndexNum ? Math.max(option.index - 1, 0): option.index;
+        } else {
+          _option.index = option.index + index;
+        }
+      }
+      item && ctrl.select(item, _option);
     });
   }
 
@@ -450,7 +458,7 @@ uis.controller('uiSelectCtrl',
           }
         }
 
-        !option.skipAdd && $scope.$broadcast('uis:select', item);
+        !option.skipAdd && $scope.$broadcast('uis:select', item, option.index);
 
         // TODO 검색을 위해 선택시에 keyword를 추가
         var locals = {};

@@ -125,6 +125,13 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         return $select.taggingInvalid.isActivated && item[$select.taggingInvalid.value];
       };
 
+      ctrl.getActiveItems = function (indexes) {
+        ctrl.updateModel();
+        return $select.selected.filter(function (v, i) {
+          return indexes.indexOf(i) > -1;
+        });
+      };
+
       ctrl.activeItem = function (i) {
         $select.close();
         if (ctrl.isPressShiftKey && ctrl.activeMatchIndexes.length > 0) {
@@ -276,11 +283,11 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         scope.$applyAsync(); //To force $digest
       };
 
-      scope.$on('uis:select', function (event, item) {
+      scope.$on('uis:select', function (event, item, index) {
         if ($select.selected.length >= $select.limit) {
           return;
         }
-        $select.selected.push(item);
+        index === undefined ? $select.selected.push(item): $select.selected.splice(index, 0, item);
         $selectMultiple.updateModel();
       });
 
@@ -382,6 +389,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
 
         if (!$select.selected.length || newIndex === false) {
           $selectMultiple.activeMatchIndexes = [];
+          $select.searchInput.trigger('focus');
           return;
         }
 

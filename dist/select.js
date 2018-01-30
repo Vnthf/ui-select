@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2018-01-10T10:12:56.610Z
+ * Version: 0.16.1 - 2018-01-30T09:31:35.559Z
  * License: MIT
  */
 
@@ -694,8 +694,16 @@ uis.controller('uiSelectCtrl',
   };
 
   function _selectArrayItem(itemList, option) {
-    angular.forEach(itemList, function (item) {
-      item && ctrl.select(item, option);
+    angular.forEach(itemList, function (item, index) {
+      var _option = angular.copy(option);
+      if(angular.isNumber(option.index)) {
+        if(angular.isNumber(option.smallerIndexNum)) {
+          _option.index = index < option.smallerIndexNum ? Math.max(option.index - 1, 0): option.index;
+        } else {
+          _option.index = option.index + index;
+        }
+      }
+      item && ctrl.select(item, _option);
     });
   }
 
@@ -767,7 +775,7 @@ uis.controller('uiSelectCtrl',
           }
         }
 
-        !option.skipAdd && $scope.$broadcast('uis:select', item);
+        !option.skipAdd && $scope.$broadcast('uis:select', item, option.index);
 
         // TODO 검색을 위해 선택시에 keyword를 추가
         var locals = {};
@@ -1601,29 +1609,57 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       element.addClass('ui-select-moveable');
       //현재 select가 drag중인지 체크
       var isDragging = false,
+
+        dragoverItemIndex = null,
+
         DROPPABLE_CLASS = 'ui-select-droppable',
-        DRAG_ITEM_CLASS = 'ui-select-match-item',
-        DRAG_ITEM_TYPE = 'ui-select-item';
+        DRAGGABLE_ITEM_CLASS = 'ui-select-match-item',
+        DRAGGING_CLASS = 'ui-select-dragging',
+        DRAGOVER_LEFT = 'ui-select-item-drag-over-left',
+        DRAGOVER_RIGHT = 'ui-select-item-drag-over-right',
+        DRAG_DATA_PREFIX = 'ui-select-item';
 
-      element.on('dragstart', '.' + DRAG_ITEM_CLASS, function (event) {
-        var indexes = _getDragIndexes($(this).index()),
-          items = $select.selected.filter(function (v, i) {
-            return indexes.indexOf(i) > -1;
-          });
-
+      element.on('dragstart', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        var items = scope.$selectMultiple.getActiveItems(_getDragIndexes($(this).index()));
         isDragging = true;
         uiSelectDragFactory.dropComplete = false;
+        uiSelectDragFactory.currentElement = false;
+        dragoverItemIndex = 0;
+        element[0].classList.add(DRAGGING_CLASS);
         event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setDragImage(_getDragImage(indexes.length), -10, -10);
-        event.dataTransfer.setData('text', DRAG_ITEM_TYPE + JSON.stringify(items));
+        event.dataTransfer.setDragImage(_getDragImage(items.length), -10, -10);
+        event.dataTransfer.setData('text', DRAG_DATA_PREFIX + JSON.stringify(items));
       });
 
-      element.on('dragend', '.' + DRAG_ITEM_CLASS, function (event) {
-        isDragging = false;
-        event.currentTarget.classList.remove(DROPPABLE_CLASS);
-        if (uiSelectDragFactory.dropComplete) {
+      element.on('dragend', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        element[0].classList.remove(DRAGGING_CLASS);
+        event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
+        if (uiSelectDragFactory.dropComplete && !uiSelectDragFactory.currentElement) {
           scope.$selectMultiple.removeChoice(_getDragIndexes($(this).index()));
+          scope.$selectMultiple.activeMatchIndexes = [];
         }
+        isDragging = false;
+      });
+
+      element.on('drop', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
+      });
+
+      element.on('dragleave', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
+      });
+
+      element.on('dragover', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
+        if(_getOffset(event) > (this.offsetWidth / 2)) {
+          event.currentTarget.classList.add(DRAGOVER_RIGHT);
+          dragoverItemIndex = $(this).index() + 1;
+        } else {
+          event.currentTarget.classList.add(DRAGOVER_LEFT);
+          dragoverItemIndex = $(this).index();
+        }
+        event.preventDefault();
+        event.stopPropagation();
       });
 
       element.on('drop', function (event) {
@@ -1635,17 +1671,24 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
           uiSelectDragFactory.dropComplete = false;
           return true;
         }
+
+        //같은 ui-select 내부
+        if (isDragging) {
+          uiSelectDragFactory.currentElement = true;
+        }
+
         uiSelectDragFactory.dropComplete = true;
 
-        var items = JSON.parse(event.dataTransfer.getData('text').substr(DRAG_ITEM_TYPE.length));
-        for (var j = 0; j < items.length; j++) {
-          for (var i = 0; i < $select.selected.length; i++) {
-            if ($select.isEqual(items[j], $select.selected[i])) {
-              return;
-            }
-          }
-          $select.select(items[j]);
+        var items = JSON.parse(event.dataTransfer.getData('text').substr(DRAG_DATA_PREFIX.length)),
+          option = {index: dragoverItemIndex};
+        if(isDragging) {
+          option.smallerIndexNum = scope.$selectMultiple.activeMatchIndexes.filter(function(i) {
+            return i < dragoverItemIndex
+          }).length;
         }
+        $select.select(items, option);
+        dragoverItemIndex -= option.smallerIndexNum || 0;
+        scope.$selectMultiple.activeMatchIndexes = _getMovedMatchIndex(items.length);
 
       });
 
@@ -1654,6 +1697,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         event.currentTarget.classList.add(DROPPABLE_CLASS);
         return true;
       });
+
 
 
       element.on('dragleave', function (event) {
@@ -1667,16 +1711,14 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         event.preventDefault();
         event.currentTarget.classList.add(DROPPABLE_CLASS);
         event.dataTransfer.dropEffect = "move";
+        dragoverItemIndex = element.find('.' + DRAGGABLE_ITEM_CLASS).length;
         return true;
       });
 
       //dragged인 아이템이 같은 컴퍼넌트가 아니고 type이 ui-select일 경우
       function isAllowDrop(event) {
-        if (isDragging) {
-          return false;
-        }
         var text = event.dataTransfer.getData('text');
-        return text && (text.substr(0, DRAG_ITEM_TYPE.length) === DRAG_ITEM_TYPE);
+        return text && (text.substr(0, DRAG_DATA_PREFIX.length) === DRAG_DATA_PREFIX);
       }
 
       scope.$on('$destroy', function () {
@@ -1689,8 +1731,10 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       });
 
       function _getDragIndexes(targetIndex) {
-        return scope.$selectMultiple.activeMatchIndexes.length > 0 ?
-          scope.$selectMultiple.activeMatchIndexes : [targetIndex];
+        if(scope.$selectMultiple.activeMatchIndexes.indexOf(targetIndex) < 0) {
+          scope.$selectMultiple.activeMatchIndexes = [targetIndex]
+        }
+        return scope.$selectMultiple.activeMatchIndexes;
       }
 
       //TODO: option 으로 변경
@@ -1707,6 +1751,18 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         drag_icon.style.zIndex = "9999";
         document.body.appendChild(drag_icon);
         return drag_icon;
+      }
+
+      function _getOffset(e) {
+        return e.offsetX || e.layerX || (e.originalEvent ? e.originalEvent.offsetX : 0);
+      }
+
+      function _getMovedMatchIndex(length) {
+        var list = [];
+        for (var i = dragoverItemIndex; i < dragoverItemIndex + length; i++) {
+          list.push(i);
+        }
+        return list;
       }
     }
   };
@@ -1918,6 +1974,13 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         return $select.taggingInvalid.isActivated && item[$select.taggingInvalid.value];
       };
 
+      ctrl.getActiveItems = function (indexes) {
+        ctrl.updateModel();
+        return $select.selected.filter(function (v, i) {
+          return indexes.indexOf(i) > -1;
+        });
+      };
+
       ctrl.activeItem = function (i) {
         $select.close();
         if (ctrl.isPressShiftKey && ctrl.activeMatchIndexes.length > 0) {
@@ -2069,11 +2132,11 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         scope.$applyAsync(); //To force $digest
       };
 
-      scope.$on('uis:select', function (event, item) {
+      scope.$on('uis:select', function (event, item, index) {
         if ($select.selected.length >= $select.limit) {
           return;
         }
-        $select.selected.push(item);
+        index === undefined ? $select.selected.push(item): $select.selected.splice(index, 0, item);
         $selectMultiple.updateModel();
       });
 
@@ -2175,6 +2238,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
 
         if (!$select.selected.length || newIndex === false) {
           $selectMultiple.activeMatchIndexes = [];
+          $select.searchInput.trigger('focus');
           return;
         }
 
@@ -2563,143 +2627,6 @@ uis.directive('uiSelectSingle', ['$timeout','$compile', function($timeout, $comp
       });
 
 
-    }
-  };
-}]);
-
-// Make multiple matches sortable
-uis.directive('uiSelectSort', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr', function($timeout, uiSelectConfig, uiSelectMinErr) {
-  return {
-    require: '^^uiSelect',
-    link: function(scope, element, attrs, $select) {
-      if (scope[attrs.uiSelectSort] === null) {
-        throw uiSelectMinErr('sort', 'Expected a list to sort');
-      }
-
-      var options = angular.extend({
-          axis: 'horizontal'
-        },
-        scope.$eval(attrs.uiSelectSortOptions));
-
-      var axis = options.axis;
-      var draggingClassName = 'dragging';
-      var droppingClassName = 'dropping';
-      var droppingBeforeClassName = 'dropping-before';
-      var droppingAfterClassName = 'dropping-after';
-
-      scope.$watch(function(){
-        return $select.sortable;
-      }, function(newValue){
-        if (newValue) {
-          element.attr('draggable', true);
-        } else {
-          element.removeAttr('draggable');
-        }
-      });
-
-      element.on('dragstart', function(event) {
-        element.addClass(draggingClassName);
-
-        (event.dataTransfer || event.originalEvent.dataTransfer).setData('text', scope.$index.toString());
-      });
-
-      element.on('dragend', function() {
-        element.removeClass(draggingClassName);
-      });
-
-      var move = function(from, to) {
-        /*jshint validthis: true */
-        this.splice(to, 0, this.splice(from, 1)[0]);
-      };
-
-      var dragOverHandler = function(event) {
-        event.preventDefault();
-
-        var offset = axis === 'vertical' ? event.offsetY || event.layerY || (event.originalEvent ? event.originalEvent.offsetY : 0) : event.offsetX || event.layerX || (event.originalEvent ? event.originalEvent.offsetX : 0);
-
-        if (offset < (this[axis === 'vertical' ? 'offsetHeight' : 'offsetWidth'] / 2)) {
-          element.removeClass(droppingAfterClassName);
-          element.addClass(droppingBeforeClassName);
-
-        } else {
-          element.removeClass(droppingBeforeClassName);
-          element.addClass(droppingAfterClassName);
-        }
-      };
-
-      var dropTimeout;
-
-      var dropHandler = function(event) {
-        event.preventDefault();
-
-        var droppedItemIndex = parseInt((event.dataTransfer || event.originalEvent.dataTransfer).getData('text'), 10);
-
-        // prevent event firing multiple times in firefox
-        $timeout.cancel(dropTimeout);
-        dropTimeout = $timeout(function() {
-          _dropHandler(droppedItemIndex);
-        }, 20, false);
-      };
-
-      var _dropHandler = function(droppedItemIndex) {
-        var theList = scope.$eval(attrs.uiSelectSort);
-        var itemToMove = theList[droppedItemIndex];
-        var newIndex = null;
-
-        if (element.hasClass(droppingBeforeClassName)) {
-          if (droppedItemIndex < scope.$index) {
-            newIndex = scope.$index - 1;
-          } else {
-            newIndex = scope.$index;
-          }
-        } else {
-          if (droppedItemIndex < scope.$index) {
-            newIndex = scope.$index;
-          } else {
-            newIndex = scope.$index + 1;
-          }
-        }
-
-        move.apply(theList, [droppedItemIndex, newIndex]);
-
-        scope.$applyAsync(function() {
-          scope.$emit('uiSelectSort:change', {
-            array: theList,
-            item: itemToMove,
-            from: droppedItemIndex,
-            to: newIndex
-          });
-        });
-
-        element.removeClass(droppingClassName);
-        element.removeClass(droppingBeforeClassName);
-        element.removeClass(droppingAfterClassName);
-
-        element.off('drop', dropHandler);
-      };
-
-      element.on('dragenter', function() {
-        if (element.hasClass(draggingClassName)) {
-          return;
-        }
-
-        element.addClass(droppingClassName);
-
-        element.on('dragover', dragOverHandler);
-        element.on('drop', dropHandler);
-      });
-
-      element.on('dragleave', function(event) {
-        if (event.target != element) {
-          return;
-        }
-        element.removeClass(droppingClassName);
-        element.removeClass(droppingBeforeClassName);
-        element.removeClass(droppingAfterClassName);
-
-        element.off('dragover', dragOverHandler);
-        element.off('drop', dropHandler);
-      });
     }
   };
 }]);

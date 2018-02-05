@@ -11,15 +11,24 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       element.addClass('ui-select-moveable');
       //현재 select가 drag중인지 체크
       var isDragging = false,
-
+        //드레그 한 아이템을 삽입할 위치
         dragoverItemIndex = null,
 
-        DROPPABLE_CLASS = 'ui-select-droppable',
+        //drag 데이터 타입
+        DRAG_DATA_TYPE = 'ui-select-item',
+        //drag event를 걸 아이템
         DRAGGABLE_ITEM_CLASS = 'ui-select-match-item',
+
+        //drop이 가능한지 ui에 표시
+        DROPPABLE_CLASS = 'ui-select-droppable',
+        DROPPABLE_IN_ITEM_CLASS = 'ui-select-droppable-in-item',
+
+        //draging 클래스를 ui에 표시
         DRAGGING_CLASS = 'ui-select-dragging',
+
+        //drop할 곳이 아이템의 왼쪽인지 오른쪽인지 ui에 표시
         DRAGOVER_LEFT = 'ui-select-item-drag-over-left',
-        DRAGOVER_RIGHT = 'ui-select-item-drag-over-right',
-        DRAG_DATA_PREFIX = 'ui-select-item';
+        DRAGOVER_RIGHT = 'ui-select-item-drag-over-right';
 
       element.on('dragstart', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
         var items = scope.$selectMultiple.getActiveItems(_getDragIndexes($(this).index()));
@@ -28,38 +37,48 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         uiSelectDragFactory.currentElement = false;
         dragoverItemIndex = 0;
         element[0].classList.add(DRAGGING_CLASS);
+
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setDragImage(_getDragImage(items.length), -10, -10);
-        event.dataTransfer.setData('text', DRAG_DATA_PREFIX + JSON.stringify(items));
+        event.dataTransfer.setData(DRAG_DATA_TYPE, JSON.stringify(items));
       });
 
       element.on('dragend', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
         element[0].classList.remove(DRAGGING_CLASS);
         event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
+
         if (uiSelectDragFactory.dropComplete && !uiSelectDragFactory.currentElement) {
           scope.$selectMultiple.removeChoice(_getDragIndexes($(this).index()));
           scope.$selectMultiple.activeMatchIndexes = [];
         }
+
         isDragging = false;
       });
 
       element.on('drop', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        element[0].classList.remove(DROPPABLE_IN_ITEM_CLASS);
         event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
       });
 
       element.on('dragleave', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        element[0].classList.remove(DROPPABLE_IN_ITEM_CLASS);
         event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
       });
 
       element.on('dragover', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
         event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
-        if(_getOffset(event) > (this.offsetWidth / 2)) {
-          event.currentTarget.classList.add(DRAGOVER_RIGHT);
-          dragoverItemIndex = $(this).index() + 1;
-        } else {
-          event.currentTarget.classList.add(DRAGOVER_LEFT);
-          dragoverItemIndex = $(this).index();
+
+        if (isAllowDrop(event)) {
+          element[0].classList.add(DROPPABLE_IN_ITEM_CLASS);
+          if (_getOffset(event) > (this.offsetWidth / 2)) {
+            event.currentTarget.classList.add(DRAGOVER_RIGHT);
+            dragoverItemIndex = $(this).index() + 1;
+          } else {
+            event.currentTarget.classList.add(DRAGOVER_LEFT);
+            dragoverItemIndex = $(this).index();
+          }
         }
+
         event.preventDefault();
         event.stopPropagation();
       });
@@ -81,10 +100,11 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
 
         uiSelectDragFactory.dropComplete = true;
 
-        var items = JSON.parse(event.dataTransfer.getData('text').substr(DRAG_DATA_PREFIX.length)),
+        var items = JSON.parse(event.dataTransfer.getData(DRAG_DATA_TYPE)),
           option = {index: dragoverItemIndex};
-        if(isDragging) {
-          option.smallerIndexNum = scope.$selectMultiple.activeMatchIndexes.filter(function(i) {
+
+        if (isDragging) {
+          option.smallerIndexNum = scope.$selectMultiple.activeMatchIndexes.filter(function (i) {
             return i < dragoverItemIndex
           }).length;
         }
@@ -96,10 +116,11 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
 
       element.on('dragenter', function (event) {
         event.preventDefault();
-        event.currentTarget.classList.add(DROPPABLE_CLASS);
+        if (isAllowDrop(event)) {
+          event.currentTarget.classList.add(DROPPABLE_CLASS);
+        }
         return true;
       });
-
 
 
       element.on('dragleave', function (event) {
@@ -111,7 +132,9 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
 
       element.on('dragover', function (event) {
         event.preventDefault();
-        event.currentTarget.classList.add(DROPPABLE_CLASS);
+        if (isAllowDrop(event)) {
+          event.currentTarget.classList.add(DROPPABLE_CLASS);
+        }
         event.dataTransfer.dropEffect = "move";
         dragoverItemIndex = element.find('.' + DRAGGABLE_ITEM_CLASS).length;
         return true;
@@ -119,8 +142,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
 
       //dragged인 아이템이 같은 컴퍼넌트가 아니고 type이 ui-select일 경우
       function isAllowDrop(event) {
-        var text = event.dataTransfer.getData('text');
-        return text && (text.substr(0, DRAG_DATA_PREFIX.length) === DRAG_DATA_PREFIX);
+        return event.dataTransfer.types.indexOf(DRAG_DATA_TYPE) > -1;
       }
 
       scope.$on('$destroy', function () {
@@ -133,7 +155,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       });
 
       function _getDragIndexes(targetIndex) {
-        if(scope.$selectMultiple.activeMatchIndexes.indexOf(targetIndex) < 0) {
+        if (scope.$selectMultiple.activeMatchIndexes.indexOf(targetIndex) < 0) {
           scope.$selectMultiple.activeMatchIndexes = [targetIndex]
         }
         return scope.$selectMultiple.activeMatchIndexes;
@@ -168,4 +190,4 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       }
     }
   };
-}]);
+]);

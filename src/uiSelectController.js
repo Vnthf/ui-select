@@ -466,11 +466,17 @@ uis.controller('uiSelectCtrl',
         locals[ctrl.parserResult.itemName] = item;
 
         $timeout(function(){
-          ctrl.onSelectCallback($scope, {
+          var promise = ctrl.onSelectCallback($scope, {
             $keyword: ctrl.keyword,
             $item: item,
             $model: ctrl.parserResult.modelMapper($scope, locals)
           });
+
+          if(promise && typeof promise.then === 'function') {
+            promise.then(function () {
+              ctrl.sizeSearchInput();
+            });
+          }
         }, 0, false);
 
         if (ctrl.closeOnSelect) {
@@ -552,7 +558,7 @@ uis.controller('uiSelectCtrl',
           if (containerWidth === 0) {
             return false;
           }
-          var inputWidth = containerWidth - input.offsetLeft - (ctrl.multiple ? 10 : 0);
+          var inputWidth = containerWidth - input.offsetLeft - (ctrl.multiple ? 16 : 0);
           if (inputWidth < 50) inputWidth = containerWidth;
           ctrl.searchInput.css('width', inputWidth+'px');
           return true;

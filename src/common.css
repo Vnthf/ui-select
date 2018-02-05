@@ -266,7 +266,7 @@ body > .ui-select-bootstrap.open {
     box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.25);
 }
 
-.ui-select-droppable {
+.ui-select-droppable, .ui-select-droppable-in-item {
     outline: 1px solid #015aff;
 }
 
@@ -275,7 +275,7 @@ body > .ui-select-bootstrap.open {
     content: '';
     height: 23px;
     position: absolute;
-    width: 2px;
+    width: 1px;
     right: -3px;
     top: 0;
     background-color: #015aff;
@@ -288,25 +288,35 @@ body > .ui-select-bootstrap.open {
 .ui-select-moveable .ui-select-item-drag-over-right:after {
     display: inline-block;
     content: '';
-    height: 23px;
+    height: 24px;
     position: absolute;
-    width: 2px;
+    width: 1px;
     right: -3px;
     top: 0;
     background-color: #015aff;
 }
+
+.ui-select-moveable .ui-select-match .ui-select-match-item.ui-select-item-drag-over-right {
+    margin-right: 4px;
+}
+
 .ui-select-moveable .ui-select-item-drag-over-left:before {
     display: inline-block;
     content: '';
-    height: 23px;
+    height: 24px;
     position: absolute;
-    width: 2px;
+    width: 1px;
     left: -3px;
     top: 0;
     background-color: #015aff;
 }
 
+.ui-select-moveable .ui-select-match .ui-select-match-item.ui-select-item-drag-over-left {
+    margin-left: 4px;
+}
+
 .ui-select-moveable.ui-select-dragging .ui-select-match-item .select {
     opacity: 0.6;
 }
+
 

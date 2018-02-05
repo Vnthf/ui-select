@@ -190,4 +190,4 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       }
     }
   };
-]);
+}]);

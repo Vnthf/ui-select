@@ -10,12 +10,12 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
     link: function (scope, element, attrs, $select) {
       element.addClass('ui-select-moveable');
       //현재 select가 drag중인지 체크
-      var isDragging = false,
+      var isCurrentDragging = false,
         //드레그 한 아이템을 삽입할 위치
         dragoverItemIndex = null,
 
         //drag 데이터 타입
-        DRAG_DATA_TYPE = 'ui-select-item',
+        DRAG_DATA_PREFIX = 'ui-select-item',
         //drag event를 걸 아이템
         DRAGGABLE_ITEM_CLASS = 'ui-select-match-item',
 
@@ -32,7 +32,8 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
 
       element.on('dragstart', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
         var items = scope.$selectMultiple.getActiveItems(_getDragIndexes($(this).index()));
-        isDragging = true;
+        isCurrentDragging = true;
+        uiSelectDragFactory.idDragging = true;
         uiSelectDragFactory.dropComplete = false;
         uiSelectDragFactory.currentElement = false;
         dragoverItemIndex = 0;
@@ -40,7 +41,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
 
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setDragImage(_getDragImage(items.length), -10, -10);
-        event.dataTransfer.setData(DRAG_DATA_TYPE, JSON.stringify(items));
+        event.dataTransfer.setData('text', DRAG_DATA_PREFIX + JSON.stringify(items));
       });
 
       element.on('dragend', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
@@ -51,8 +52,8 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
           scope.$selectMultiple.removeChoice(_getDragIndexes($(this).index()));
           scope.$selectMultiple.activeMatchIndexes = [];
         }
-
-        isDragging = false;
+        uiSelectDragFactory.idDragging = false;
+        isCurrentDragging = false;
       });
 
       element.on('drop', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
@@ -68,7 +69,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       element.on('dragover', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
         event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
 
-        if (isAllowDrop(event)) {
+        if (uiSelectDragFactory.idDragging) {
           element[0].classList.add(DROPPABLE_IN_ITEM_CLASS);
           if (_getOffset(event) > (this.offsetWidth / 2)) {
             event.currentTarget.classList.add(DRAGOVER_RIGHT);
@@ -93,17 +94,14 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
           return true;
         }
 
-        //같은 ui-select 내부
-        if (isDragging) {
-          uiSelectDragFactory.currentElement = true;
-        }
-
         uiSelectDragFactory.dropComplete = true;
 
-        var items = JSON.parse(event.dataTransfer.getData(DRAG_DATA_TYPE)),
+        var items = JSON.parse(event.dataTransfer.getData('text').substr(DRAG_DATA_PREFIX.length)),
           option = {index: dragoverItemIndex};
 
-        if (isDragging) {
+        //같은 ui-select 내부
+        if (isCurrentDragging) {
+          uiSelectDragFactory.currentElement = true;
           option.smallerIndexNum = scope.$selectMultiple.activeMatchIndexes.filter(function (i) {
             return i < dragoverItemIndex
           }).length;
@@ -111,12 +109,12 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         $select.select(items, option);
         dragoverItemIndex -= option.smallerIndexNum || 0;
         scope.$selectMultiple.activeMatchIndexes = _getMovedMatchIndex(items.length);
-
+        event.stopPropagation();
       });
 
       element.on('dragenter', function (event) {
         event.preventDefault();
-        if (isAllowDrop(event)) {
+        if (uiSelectDragFactory.idDragging) {
           event.currentTarget.classList.add(DROPPABLE_CLASS);
         }
         return true;
@@ -132,7 +130,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
 
       element.on('dragover', function (event) {
         event.preventDefault();
-        if (isAllowDrop(event)) {
+        if (uiSelectDragFactory.idDragging) {
           event.currentTarget.classList.add(DROPPABLE_CLASS);
         }
         event.dataTransfer.dropEffect = "move";
@@ -142,7 +140,8 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
 
       //dragged인 아이템이 같은 컴퍼넌트가 아니고 type이 ui-select일 경우
       function isAllowDrop(event) {
-        return event.dataTransfer.types.indexOf(DRAG_DATA_TYPE) > -1;
+        var text = event.dataTransfer.getData('text');
+        return text && (text.substr(0, DRAG_DATA_PREFIX.length) === DRAG_DATA_PREFIX);
       }
 
       scope.$on('$destroy', function () {

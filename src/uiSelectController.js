@@ -667,6 +667,10 @@ uis.controller('uiSelectCtrl',
       e.stopPropagation();
     }
 
+    if (KEY.TAB === key) {
+      ctrl.search ? e.preventDefault() : ctrl.close();
+    }
+
     // if(~[KEY.ESC,KEY.TAB].indexOf(key)){
     //   //TODO: SEGURO?
     //   ctrl.close();

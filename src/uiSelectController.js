@@ -123,6 +123,7 @@ uis.controller('uiSelectCtrl',
 
       ctrl.open = true;
 
+      ctrl.activeIndex = (ctrl.multiple && !ctrl.search) ? -1 : ctrl.activeIndex;
       ctrl.activeIndex = ctrl.activeIndex >= ctrl.items.length ? 0 : ctrl.activeIndex;
 
       // ensure that the index is set to zero for tagging variants
@@ -145,7 +146,7 @@ uis.controller('uiSelectCtrl',
         $timeout(function () {
           ctrl.focusSearchInput(initSearchValue);
           if(!ctrl.tagging.isActivated && ctrl.items.length > 1) {
-            _ensureHighlightVisible();
+            ctrl.ensureHighlightVisible();
           }
         }, 0, false);
       }
@@ -176,7 +177,7 @@ uis.controller('uiSelectCtrl',
       //   $timeout(function () {
       //     ctrl.focusSearchInput(initSearchValue);
       //     if(!ctrl.tagging.isActivated && ctrl.items.length > 1) {
-      //       _ensureHighlightVisible();
+      //       ctrl.ensureHighlightVisible();
       //     }
       //   }, 0, false);
       // }
@@ -622,6 +623,7 @@ uis.controller('uiSelectCtrl',
         break;
       case KEY.UP:
         if (!ctrl.open && ctrl.multiple) ctrl.activate(false, true); //In case its the search input in 'multiple' mode
+        else if (ctrl.activeIndex === -1) ctrl.activeIndex = ctrl.items.length - 1;
         else if (ctrl.activeIndex > 0 || (ctrl.search.length === 0 && ctrl.tagging.isActivated && ctrl.activeIndex > -1)) {
           _enableKeyDownMode();
           ctrl.activeIndex--;
@@ -667,8 +669,8 @@ uis.controller('uiSelectCtrl',
       e.stopPropagation();
     }
 
-    if (KEY.TAB === key) {
-      ctrl.search ? e.preventDefault() : ctrl.close();
+    if (KEY.TAB === key && ctrl.multiple) {
+      (ctrl.open && ctrl.activeIndex > -1) ? e.preventDefault() : ctrl.close();
     }
 
     // if(~[KEY.ESC,KEY.TAB].indexOf(key)){
@@ -708,7 +710,7 @@ uis.controller('uiSelectCtrl',
     });
 
     if(KEY.isVerticalMovement(key) && ctrl.items.length > 0){
-      _ensureHighlightVisible();
+      ctrl.ensureHighlightVisible();
     }
 
     if (key === KEY.ENTER || key === KEY.ESC) {
@@ -802,15 +804,11 @@ uis.controller('uiSelectCtrl',
   });
 
   // See https://github.com/ivaynberg/select2/blob/3.4.6/select2.js#L1431
-  function _ensureHighlightVisible() {
+  ctrl.ensureHighlightVisible = function () {
     var container = $element.querySelectorAll('.ui-select-choices-content');
     var choices = container.querySelectorAll('.ui-select-choices-row');
-    if (choices.length < 1) {
-      throw uiSelectMinErr('choices', "Expected multiple .ui-select-choices-row but got '{0}'.", choices.length);
-    }
-
-    if (ctrl.activeIndex < 0) {
-      return;
+    if (choices.length < 1 || ctrl.activeIndex < 0) {
+      // throw uiSelectMinErr('choices', "Expected multiple .ui-select-choices-row but got '{0}'.", choices.length);
     }
 
     var highlighted = choices[ctrl.activeIndex];

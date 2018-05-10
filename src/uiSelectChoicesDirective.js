@@ -84,9 +84,8 @@ uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelect
           scope.$watch('$select.search', function (newValue) {
             if (newValue && !$select.open && $select.multiple) $select.activate(false, true);
             // $select.activeIndex = $select.tagging.isActivated ? -1 : 0;
-            var isMoveIndex = $select.activeIndex > 0;
-            $select.activeIndex = 0; //TODO: activeIndex는 무조건 0 으로 설정
-            isMoveIndex && $select.ensureHighlightVisible();
+            $select.activeIndex = ($select.multiple && !newValue) ? -1 : 0;
+            $select.ensureHighlightVisible();
             if (!attrs.minimumInputLength || $select.search.length >= attrs.minimumInputLength) {
               $select.refresh(attrs.refresh);
             } else {

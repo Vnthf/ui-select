@@ -624,7 +624,7 @@ uis.controller('uiSelectCtrl',
       case KEY.UP:
         if (!ctrl.open && ctrl.multiple) ctrl.activate(false, true); //In case its the search input in 'multiple' mode
         else if (ctrl.activeIndex === -1) ctrl.activeIndex = ctrl.items.length - 1;
-        else if (ctrl.activeIndex > 0 || (ctrl.search.length === 0 && ctrl.tagging.isActivated && ctrl.activeIndex > -1)) {
+        else if (ctrl.activeIndex > 0) {
           _enableKeyDownMode();
           ctrl.activeIndex--;
         }
@@ -809,6 +809,7 @@ uis.controller('uiSelectCtrl',
     var choices = container.querySelectorAll('.ui-select-choices-row');
     if (choices.length < 1 || ctrl.activeIndex < 0) {
       // throw uiSelectMinErr('choices', "Expected multiple .ui-select-choices-row but got '{0}'.", choices.length);
+      return;
     }
 
     var highlighted = choices[ctrl.activeIndex];

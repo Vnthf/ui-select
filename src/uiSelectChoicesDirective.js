@@ -50,10 +50,11 @@ uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelect
             .attr('ng-if', '$select.open'); //Prevent unnecessary watches when dropdown is closed
           if ($window.document.addEventListener) {  //crude way to exclude IE8, specifically, which also cannot capture events
             // grouping에서 오동작을 막기위해 itemIndex를 activeIndex로 설정
-            choices.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)')
+            choices
               .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',{skipFocusser: $select.skipFocusser, $event: $event})')
               .attr('ng-init', 'itemIndex=$select.getItemIndex(this)')
               .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
+            !$select.multiple && choices.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)');
 
             choices.children().attr('ng-class', '{\'prev-selected\': $select.isPrevActive(itemIndex)}');
           }
@@ -63,10 +64,11 @@ uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelect
           rowsInner.attr('uis-transclude-append', ''); //Adding uisTranscludeAppend directive to row element after choices element has ngRepeat
           if (!$window.document.addEventListener) {  //crude way to target IE8, specifically, which also cannot capture events - so event bindings must be here
             // grouping에서 오동작을 막기위해 itemIndex를 activeIndex로 설정
-            rowsInner.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)')
+            rowsInner
               .attr('ng-click', '$select.select(' + $select.parserResult.itemName + ',{skipFocusser: $select.skipFocusser, $event: $event})')
               .attr('ng-init', 'itemIndex=$select.getItemIndex(this)')
               .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
+            !$select.multiple && rowsInner.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)');
             rowsInner.children().attr('ng-class', '{\'prev-selected\': $select.isPrevActive(itemIndex)}');
           }
 

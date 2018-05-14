@@ -106,6 +106,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
             return i < dragoverItemIndex
           }).length;
         }
+        $select.activeIndex = 0; // 선택이 안되는 버그 수정 패치코드
         $select.select(items, option);
         dragoverItemIndex -= option.smallerIndexNum || 0;
         scope.$selectMultiple.activeMatchIndexes = _getMovedMatchIndex(items.length);

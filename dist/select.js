@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2018-05-11T07:48:41.604Z
+ * Version: 0.16.1 - 2018-05-14T06:51:58.566Z
  * License: MIT
  */
 
@@ -491,6 +491,7 @@ uis.controller('uiSelectCtrl',
       if (!skipSelect && ctrl.multiple && ctrl.tagging.isActivated && ctrl.search !== EMPTY_SEARCH) {
         var newItem = ctrl.parseStringToTagMap(ctrl.search);
         ctrl.search = EMPTY_SEARCH;
+        ctrl.activeIndex = 0; // 선택이 안되는 버그 수정 패치코드
         // select안에 _resetSearchInput을 호출하는 로직이 있어서 무한루프에 빠지지 않기위해 수정
         ctrl.select(newItem);
         return;
@@ -1104,7 +1105,10 @@ uis.controller('uiSelectCtrl',
               if ( ctrl.tagging.fct ) {
                 newItem = ctrl.tagging.fct( newItem );
               }
-              if (newItem) ctrl.select(newItem, {skipFocusser: true});
+              if (newItem) {
+                ctrl.activeIndex = 0; // 선택이 안되는 버그 수정 패치코드
+                ctrl.select(newItem, {skipFocusser: true});
+              }
             });
           }
         }
@@ -1164,6 +1168,7 @@ uis.controller('uiSelectCtrl',
           (ctrl.taggingInvalid.isActivated && items.length === 1)) {
           ctrl.search = data || EMPTY_SEARCH;
         } else {
+          ctrl.activeIndex = 0; // 선택이 안되는 버그 수정 패치코드
           ctrl.select(items, {skipFocusser: true});
           ctrl.search = EMPTY_SEARCH;
         }
@@ -1799,6 +1804,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
             return i < dragoverItemIndex
           }).length;
         }
+        $select.activeIndex = 0; // 선택이 안되는 버그 수정 패치코드
         $select.select(items, option);
         dragoverItemIndex -= option.smallerIndexNum || 0;
         scope.$selectMultiple.activeMatchIndexes = _getMovedMatchIndex(items.length);
@@ -2057,6 +2063,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
           ctrl.removeChoice(idx, {skipRemove: true});
           if ($select.tagging.isActivated && input.length > 0) {
             items = $select.parseStringToTagMap(input);
+            $select.activeIndex = 0; // 선택이 안되는 버그 수정 패치코드
             $select.select(items, {skipFocusser: true, skipAdd: true});
           }
 

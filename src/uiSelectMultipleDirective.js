@@ -92,6 +92,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
           ctrl.removeChoice(idx, {skipRemove: true});
           if ($select.tagging.isActivated && input.length > 0) {
             items = $select.parseStringToTagMap(input);
+            $select.activeIndex = 0; // 선택이 안되는 버그 수정 패치코드
             $select.select(items, {skipFocusser: true, skipAdd: true});
           }
 

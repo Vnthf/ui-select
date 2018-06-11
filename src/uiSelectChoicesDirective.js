@@ -1,5 +1,5 @@
-uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelectMinErr', '$compile', '$window',
-  function (uiSelectConfig, RepeatParser, uiSelectMinErr, $compile, $window) {
+uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelectMinErr', '$compile', '$timeout', '$window',
+  function (uiSelectConfig, RepeatParser, uiSelectMinErr, $compile, $timeout, $window) {
 
     return {
       restrict: 'EA',
@@ -81,11 +81,15 @@ uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelect
           //   choices.remove();
           // });
 
+          var timer;
           scope.$watch('$select.search', function (newValue) {
             if (newValue && !$select.open && $select.multiple) $select.activate(false, true);
             // $select.activeIndex = $select.tagging.isActivated ? -1 : 0;
             $select.activeIndex = ($select.multiple && !newValue) ? -1 : 0;
-            $select.ensureHighlightVisible();
+            $timeout.cancel(timer);
+            timer = $timeout(function () {
+              $select.ensureHighlightVisible();
+            }, 200, false);
             if (!attrs.minimumInputLength || $select.search.length >= attrs.minimumInputLength) {
               $select.refresh(attrs.refresh);
             } else {

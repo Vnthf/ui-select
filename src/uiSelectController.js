@@ -95,7 +95,7 @@ uis.controller('uiSelectCtrl',
       }
       ctrl.search = EMPTY_SEARCH;
       //reset activeIndex
-      if (ctrl.selected && ctrl.items.length && !ctrl.multiple) {
+      if (ctrl.selected && ctrl.items && ctrl.items.length && !ctrl.multiple) {
         ctrl.activeIndex = _findIndex(ctrl.items, function(item){
           return ctrl.isEqual(this, item);
         }, ctrl.selected);
@@ -339,12 +339,8 @@ uis.controller('uiSelectCtrl',
     return ctrl.items.indexOf(itemScope[ctrl.itemProperty]);
   };
 
-  ctrl.isPrevActive = function (itemIndex) {
-    return ctrl.prevActiveIndex === itemIndex;
-  };
-
   ctrl.isActive = function(itemScope) {
-    if ( !ctrl.open ) {
+    if ( !ctrl.open || ctrl.toggleChoice ) {
       return false;
     }
     var itemIndex = ctrl.items.indexOf(itemScope[ctrl.itemProperty]);
@@ -453,13 +449,6 @@ uis.controller('uiSelectCtrl',
           }
         }
 
-        if ( ctrl.selected && angular.isArray(ctrl.selected)) {
-          var dupIndex = ctrl.selected.findIndex( function (selection) { return ctrl.isEqual(selection, item); });
-          if (dupIndex > -1) {
-            ctrl.selected.splice(dupIndex, 1);
-          }
-        }
-
         !option.skipAdd && $scope.$broadcast('uis:select', item, option.index);
 
         // TODO 검색을 위해 선택시에 keyword를 추가
@@ -549,6 +538,9 @@ uis.controller('uiSelectCtrl',
 
   var sizeWatch = null;
   ctrl.sizeSearchInput = function() {
+    if (!ctrl.multiple || ctrl.toggleChoice) {
+      return;
+    }
 
     var input = ctrl.searchInput[0],
         container = ctrl.searchInput.parent().parent()[0],
@@ -612,10 +604,11 @@ uis.controller('uiSelectCtrl',
     return [];
   };
 
-  function _handleSelection(key) {
+  function _handleSelection(key, event) {
     var processed = true;
     switch (key) {
       case KEY.DOWN:
+        event.preventDefault();
         if (!ctrl.open && ctrl.multiple) ctrl.activate(false, true); //In case its the search input in 'multiple' mode
         else if (ctrl.activeIndex < ctrl.items.length - 1) {
           _enableKeyDownMode();
@@ -623,6 +616,7 @@ uis.controller('uiSelectCtrl',
         }
         break;
       case KEY.UP:
+        event.preventDefault();
         if (!ctrl.open && ctrl.multiple) ctrl.activate(false, true); //In case its the search input in 'multiple' mode
         else if (ctrl.activeIndex === -1) ctrl.activeIndex = ctrl.items.length - 1;
         else if (ctrl.activeIndex > 0) {
@@ -684,7 +678,9 @@ uis.controller('uiSelectCtrl',
       var tagged = false;
 
       if (ctrl.items.length > 0 || ctrl.tagging.isActivated) {
-        _handleSelection(key);
+        if (!ctrl.interceptChoiceKeydownEvent || !ctrl.interceptChoiceKeydownEvent($scope.$parent, {$event: e, $select: ctrl})) {
+          _handleSelection(key, e);
+        }
         if ( ctrl.taggingTokens.isActivated ) {
           for (var i = 0; i < ctrl.taggingTokens.tokens.length; i++) {
             // ,를 구분자로 넣으면 <와 ,를 구분하지 못해서 버그가 생기므로 이를 해결하기 위해 shiftKey를 눌렀는지 확인

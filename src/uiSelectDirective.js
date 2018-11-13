@@ -6,7 +6,9 @@ uis.directive('uiSelect',
     restrict: 'EA',
     templateUrl: function(tElement, tAttrs) {
       var theme = tAttrs.theme || uiSelectConfig.theme;
-      return tAttrs.templateUrl || theme + (angular.isDefined(tAttrs.multiple) ? '/select-multiple.tpl.html' : '/select.tpl.html');
+      return tAttrs.templateUrl || theme + (
+        angular.isDefined(tAttrs.multiple) ? angular.isDefined(tAttrs.toggleChoice) ? '/select-multiple.btn.tpl.html' : '/select-multiple.tpl.html' : '/select.tpl.html'
+      );
     },
     replace: true,
     transclude: true,
@@ -54,10 +56,11 @@ uis.directive('uiSelect',
         }();
 
         scope.$watch('skipFocusser', function() {
-            var skipFocusser = scope.$eval(attrs.skipFocusser);
+            var skipFocusser = $select.toggleChoice || scope.$eval(attrs.skipFocusser);
             $select.skipFocusser = skipFocusser !== undefined ? skipFocusser : uiSelectConfig.skipFocusser;
         });
 
+        $select.toggleChoice = angular.isDefined(attrs.toggleChoice);
         $select.onSelectCallback = $parse(attrs.onSelect);
         $select.onRemoveCallback = $parse(attrs.onRemove);
         $select.onCopyItemsCallback = $parse(attrs.onCopyItems);
@@ -69,13 +72,19 @@ uis.directive('uiSelect',
             return angular.equals(value, other);
           };
 
+        var isPrevActiveCallback = angular.isDefined(attrs.isPrevActive) && $parse(attrs.isPrevActive);
+        $select.isPrevActive = function(itemIndex, item) {
+          return isPrevActiveCallback ? isPrevActiveCallback(scope, {prevActiveIndex: $select.prevActiveIndex, itemIndex: itemIndex, item: item}) :
+            $select.prevActiveIndex === itemIndex;
+        };
+
         function _makeCustomEqualFunc(isEqualModelString) {
           $select.hasCustomEqual = true;
           var isEqualModelCallback = $parse(isEqualModelString);
           // (가 있으면 콜백 함수로 가정
           return isEqualModelString.indexOf('(') === -1 ?
             function (value, other) {
-              return value[isEqualModelString] === other[isEqualModelString];
+              return angular.isObject(value) ? value[isEqualModelString] === other[isEqualModelString] : angular.equals(value, other);
             } :
             function (value, other) {
               return isEqualModelCallback(scope.$parent, {value: value, other: other});
@@ -171,6 +180,18 @@ uis.directive('uiSelect',
           }
         });
 
+        attrs.$observe('interceptMatchKeydownEvent', function() {
+          if (attrs.interceptMatchKeydownEvent) {
+            $select.interceptMatchKeydownEvent = $parse(attrs.interceptMatchKeydownEvent);
+          }
+        });
+
+        attrs.$observe('interceptChoiceKeydownEvent', function() {
+          if (attrs.interceptChoiceKeydownEvent) {
+            $select.interceptChoiceKeydownEvent = $parse(attrs.interceptChoiceKeydownEvent);
+          }
+        });
+
         //Automatically gets focus when loaded
         if (angular.isDefined(attrs.autofocus)){
           $timeout(function(){
@@ -207,7 +228,7 @@ uis.directive('uiSelect',
               var focusableControls = ['input','button','textarea','select'];
               var targetController = angular.element(e.target).controller('uiSelect'); //To check if target is other ui-select
               skipFocusser = targetController && targetController !== $select; //To check if target is other ui-select
-              if (!skipFocusser) skipFocusser =  ~focusableControls.indexOf(e.target.tagName.toLowerCase()); //Check if target is input, button or textarea
+              if (!skipFocusser && e.target.tagName) skipFocusser =  ~focusableControls.indexOf(e.target.tagName.toLowerCase()); //Check if target is input, button or textarea
             } else {
               skipFocusser = true;
             }

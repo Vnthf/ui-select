@@ -56,7 +56,7 @@ uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelect
               .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
             !$select.multiple && choices.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)');
 
-            choices.children().attr('ng-class', '{\'prev-selected\': $select.isPrevActive(itemIndex)}');
+            choices.children().attr('ng-class', '{\'prev-selected\': $select.isPrevActive(itemIndex, ' + $select.parserResult.itemName + ')}');
           }
 
           var rowsInner = element.querySelectorAll('.ui-select-choices-row-inner');
@@ -69,7 +69,7 @@ uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelect
               .attr('ng-init', 'itemIndex=$select.getItemIndex(this)')
               .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
             !$select.multiple && rowsInner.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)');
-            rowsInner.children().attr('ng-class', '{\'prev-selected\': $select.isPrevActive(itemIndex)}');
+            rowsInner.children().attr('ng-class', '{\'prev-selected\': $select.isPrevActive(itemIndex, ' + $select.parserResult.itemName + ')}');
           }
 
 

@@ -285,6 +285,14 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
       };
 
       scope.$on('uis:select', function (event, item, index) {
+        var dupIndex = $select.selected.findIndex( function (selection) { return $select.isEqual(selection, item); });
+        if (dupIndex > -1) {
+          if ($select.toggleChoice && index === undefined) {
+            return $selectMultiple.removeChoice(dupIndex);
+          }
+          $select.selected.splice(dupIndex, 1);
+        }
+
         if ($select.selected.length >= $select.limit) {
           return;
         }
@@ -610,6 +618,11 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
 
       function _onDocumentKeydown(e) {
         _toggleKeyPress(e);
+        if ($select.interceptMatchKeydownEvent && $select.interceptMatchKeydownEvent(scope.$parent, {
+          $event: e, $select: $select, $selectMultiple: $selectMultiple
+        })) {
+          return;
+        }
         if (KEY.isAllowControlKey(e.which)) {
           scope.$applyAsync(function () {
             _handleMatchSelection(e);

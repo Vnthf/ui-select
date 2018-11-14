@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2018-10-23T09:44:54.235Z
+ * Version: 0.16.1 - 2018-11-13T07:30:50.661Z
  * License: MIT
  */
 
@@ -1086,7 +1086,7 @@ uis.controller('uiSelectCtrl',
 
       if (ctrl.items.length > 0 || ctrl.tagging.isActivated) {
         if (!ctrl.interceptChoiceKeydownEvent || !ctrl.interceptChoiceKeydownEvent($scope.$parent, {$event: e, $select: ctrl})) {
-          _handleSelection(key);
+          _handleSelection(key, e);
         }
         if ( ctrl.taggingTokens.isActivated ) {
           for (var i = 0; i < ctrl.taggingTokens.tokens.length; i++) {

@@ -111,9 +111,8 @@ uis.directive('uiSelect',
         // attribute 가 설정되어 있으면 true
         $select.resetOnEsc = attrs.resetOnEsc;
 
-        scope.$watch('searchEnabled', function() {
-            var searchEnabled = scope.$eval(attrs.searchEnabled);
-            $select.searchEnabled = searchEnabled !== undefined ? searchEnabled : uiSelectConfig.searchEnabled;
+        attrs.$observe('searchEnabled', function () {
+          $select.searchEnabled = attrs.searchEnabled !== undefined ? $parse(attrs.searchEnabled)(scope.$parent) : uiSelectConfig.searchEnabled;
         });
 
         scope.$watch('sortable', function() {

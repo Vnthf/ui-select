@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2018-11-13T07:30:50.661Z
+ * Version: 0.16.1 - 2018-11-26T02:56:28.186Z
  * License: MIT
  */
 
@@ -1367,9 +1367,8 @@ uis.directive('uiSelect',
         // attribute 가 설정되어 있으면 true
         $select.resetOnEsc = attrs.resetOnEsc;
 
-        scope.$watch('searchEnabled', function() {
-            var searchEnabled = scope.$eval(attrs.searchEnabled);
-            $select.searchEnabled = searchEnabled !== undefined ? searchEnabled : uiSelectConfig.searchEnabled;
+        attrs.$observe('searchEnabled', function () {
+          $select.searchEnabled = attrs.searchEnabled !== undefined ? $parse(attrs.searchEnabled)(scope.$parent) : uiSelectConfig.searchEnabled;
         });
 
         scope.$watch('sortable', function() {
@@ -1750,6 +1749,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         DRAGOVER_RIGHT = 'ui-select-item-drag-over-right';
 
       element.on('dragstart', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        event = event.originalEvent || event;
         var items = scope.$selectMultiple.getActiveItems(_getDragIndexes($(this).index()));
         isCurrentDragging = true;
         uiSelectDragFactory.idDragging = true;
@@ -1764,6 +1764,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       });
 
       element.on('dragend', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        event = event.originalEvent || event;
         element[0].classList.remove(DRAGGING_CLASS);
         event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
 
@@ -1776,16 +1777,19 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       });
 
       element.on('drop', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        event = event.originalEvent || event;
         element[0].classList.remove(DROPPABLE_IN_ITEM_CLASS);
         event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
       });
 
       element.on('dragleave', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        event = event.originalEvent || event;
         element[0].classList.remove(DROPPABLE_IN_ITEM_CLASS);
         event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
       });
 
       element.on('dragover', '.' + DRAGGABLE_ITEM_CLASS, function (event) {
+        event = event.originalEvent || event;
         event.currentTarget.classList.remove(DRAGOVER_LEFT, DRAGOVER_RIGHT);
 
         if (uiSelectDragFactory.idDragging) {
@@ -1804,6 +1808,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       });
 
       element.on('drop', function (event) {
+        event = event.originalEvent || event;
         event.preventDefault();
         event.dataTransfer.dropEffect = "none";
         event.currentTarget.classList.remove(DROPPABLE_CLASS);
@@ -1833,6 +1838,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       });
 
       element.on('dragenter', function (event) {
+        event = event.originalEvent || event;
         event.preventDefault();
         if (uiSelectDragFactory.idDragging) {
           event.currentTarget.classList.add(DROPPABLE_CLASS);
@@ -1842,6 +1848,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
 
 
       element.on('dragleave', function (event) {
+        event = event.originalEvent || event;
         event.preventDefault();
         event.currentTarget.classList.remove(DROPPABLE_CLASS);
         uiSelectDragFactory.dropComplete = false;
@@ -1849,6 +1856,7 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
       });
 
       element.on('dragover', function (event) {
+        event = event.originalEvent || event;
         event.preventDefault();
         if (uiSelectDragFactory.idDragging) {
           event.currentTarget.classList.add(DROPPABLE_CLASS);

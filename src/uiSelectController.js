@@ -340,7 +340,7 @@ uis.controller('uiSelectCtrl',
   };
 
   ctrl.isActive = function(itemScope) {
-    if ( !ctrl.open || ctrl.toggleChoice ) {
+    if ( !ctrl.open ) {
       return false;
     }
     var itemIndex = ctrl.items.indexOf(itemScope[ctrl.itemProperty]);

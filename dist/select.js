@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2018-11-26T02:56:28.186Z
+ * Version: 0.16.1 - 2018-11-27T15:31:43.175Z
  * License: MIT
  */
 
@@ -747,7 +747,7 @@ uis.controller('uiSelectCtrl',
   };
 
   ctrl.isActive = function(itemScope) {
-    if ( !ctrl.open || ctrl.toggleChoice ) {
+    if ( !ctrl.open ) {
       return false;
     }
     var itemIndex = ctrl.items.indexOf(itemScope[ctrl.itemProperty]);

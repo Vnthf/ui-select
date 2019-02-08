@@ -117,6 +117,12 @@ uis.directive('uiSelectSingle', ['$timeout','$compile', function($timeout, $comp
         scope.$digest();
 
       });
+      scope.$on('$destroy', function () {
+        focusser.unbind('focus');
+        focusser.unbind('blur');
+        focusser.unbind('keydown');
+        focusser.unbind('keyup input');
+      });
 
 
     }

@@ -161,6 +161,11 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         element.off('dragenter');
         element.off('dragleave');
         element.off('dragover');
+        element.off('dragstart', '.' + DRAGGABLE_ITEM_CLASS);
+        element.off('dragend', '.' + DRAGGABLE_ITEM_CLASS);
+        element.off('drop', '.' + DRAGGABLE_ITEM_CLASS);
+        element.off('dragleave', '.' + DRAGGABLE_ITEM_CLASS);
+        element.off('dragover', '.' + DRAGGABLE_ITEM_CLASS);
       });
 
       function _getDragIndexes(targetIndex) {

@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2019-02-08T06:23:38.956Z
+ * Version: 0.16.1 - 2019-02-08T06:41:31.838Z
  * License: MIT
  */
 
@@ -542,14 +542,16 @@ uis.controller('uiSelectCtrl',
 
       var container = $element.querySelectorAll('.ui-select-choices-content');
       if (ctrl.$animate && ctrl.$animate.on && ctrl.$animate.enabled(container[0])) {
-        ctrl.$animate.on('enter', container[0], function (elem, phase) {
+        var handler = function (elem, phase) {
           if (phase === 'close') {
             // Only focus input after the animation has finished
             $timeout(function () {
               ctrl.focusSearchInput(initSearchValue);
             }, 0, false);
+            ctrl.$animate.off('enter', container[0], handler);
           }
-        });
+        };
+        ctrl.$animate.on('enter', container[0], handler);
       } else {
         $timeout(function () {
           ctrl.focusSearchInput(initSearchValue);
@@ -1881,6 +1883,11 @@ uis.directive('uiSelectMoveable', ['$timeout', 'uiSelectConfig', 'uiSelectMinErr
         element.off('dragenter');
         element.off('dragleave');
         element.off('dragover');
+        element.off('dragstart', '.' + DRAGGABLE_ITEM_CLASS);
+        element.off('dragend', '.' + DRAGGABLE_ITEM_CLASS);
+        element.off('drop', '.' + DRAGGABLE_ITEM_CLASS);
+        element.off('dragleave', '.' + DRAGGABLE_ITEM_CLASS);
+        element.off('dragover', '.' + DRAGGABLE_ITEM_CLASS);
       });
 
       function _getDragIndexes(targetIndex) {
@@ -2792,6 +2799,12 @@ uis.directive('uiSelectSingle', ['$timeout','$compile', function($timeout, $comp
         focusser.val('');
         scope.$digest();
 
+      });
+      scope.$on('$destroy', function () {
+        focusser.unbind('focus');
+        focusser.unbind('blur');
+        focusser.unbind('keydown');
+        focusser.unbind('keyup input');
       });
 
 

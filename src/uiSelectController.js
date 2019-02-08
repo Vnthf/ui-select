@@ -838,11 +838,13 @@ uis.controller('uiSelectCtrl',
   //   angular.element($window).off('resize', onResize);
   // });
 
+  var listener = function() {
+    ctrl.sizeSearchInput();
+  };
   $scope.$on('$destroy', function() {
     ctrl.searchInput.off('keyup keydown tagged blur paste');
+    angular.element($window).unbind('resize', listener);
   });
 
-  angular.element($window).bind('resize', function() {
-    ctrl.sizeSearchInput();
-  });
+  angular.element($window).bind('resize', listener);
 }]);

@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2019-02-08T06:41:31.838Z
+ * Version: 0.16.1 - 2019-02-21T09:53:45.370Z
  * License: MIT
  */
 
@@ -352,7 +352,8 @@ uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelect
               .attr('ng-click', '$select.activeIndex=itemIndex;$select.select(' + $select.parserResult.itemName + ',{skipFocusser: $select.skipFocusser, $event: $event})')
               .attr('ng-init', 'itemIndex=$select.getItemIndex(this)')
               .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
-            !$select.multiple && choices.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)');
+            // ng-mouseenter attribute 가 이미 존재할 경우에는 덮어쓰지 않음
+            !$select.multiple && !choices.attr('ng-mouseenter') && choices.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)');
 
             choices.children().attr('ng-class', '{\'prev-selected\': $select.isPrevActive(itemIndex, ' + $select.parserResult.itemName + ')}');
           }
@@ -366,7 +367,8 @@ uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelect
               .attr('ng-click', '$select.activeIndex=itemIndex;$select.select(' + $select.parserResult.itemName + ',{skipFocusser: $select.skipFocusser, $event: $event})')
               .attr('ng-init', 'itemIndex=$select.getItemIndex(this)')
               .attr('id', 'ui-select-choices-row-' + $select.generatedId + '-{{itemIndex}}');
-            !$select.multiple && rowsInner.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)');
+            // ng-mouseenter attribute 가 이미 존재할 경우에는 덮어쓰지 않음
+            !$select.multiple && !choices.attr('ng-mouseenter') && rowsInner.attr('ng-mouseenter', '$select.onMouseEnter(itemIndex)');
             rowsInner.children().attr('ng-class', '{\'prev-selected\': $select.isPrevActive(itemIndex, ' + $select.parserResult.itemName + ')}');
           }
 

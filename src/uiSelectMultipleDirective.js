@@ -606,7 +606,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         }
       }
 
-      if (!$select.toggleChoice) {
+      if (!angular.isDefined(element.parent().attr('toggle-choice'))) {
         //Ctrl, Shift + 마우스를 통한 multi select
         $document.on('keydown', _onDocumentKeydown);
         $document.on('keyup', _toggleKeyPress);

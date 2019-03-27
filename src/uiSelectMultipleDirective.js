@@ -606,9 +606,11 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         }
       }
 
-      //Ctrl, Shift + 마우스를 통한 multi select
-      $document.on('keydown', _onDocumentKeydown);
-      $document.on('keyup', _toggleKeyPress);
+      if (!$select.toggleChoice) {
+        //Ctrl, Shift + 마우스를 통한 multi select
+        $document.on('keydown', _onDocumentKeydown);
+        $document.on('keyup', _toggleKeyPress);
+      }
       $document.on('click', _onDocumentClick);
 
       function _toggleKeyPress(e) {

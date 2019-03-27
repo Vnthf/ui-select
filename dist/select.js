@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2019-02-21T09:53:45.370Z
+ * Version: 0.16.1 - 2019-03-27T06:53:22.092Z
  * License: MIT
  */
 
@@ -2618,9 +2618,11 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         }
       }
 
-      //Ctrl, Shift + 마우스를 통한 multi select
-      $document.on('keydown', _onDocumentKeydown);
-      $document.on('keyup', _toggleKeyPress);
+      if (!$select.toggleChoice) {
+        //Ctrl, Shift + 마우스를 통한 multi select
+        $document.on('keydown', _onDocumentKeydown);
+        $document.on('keyup', _toggleKeyPress);
+      }
       $document.on('click', _onDocumentClick);
 
       function _toggleKeyPress(e) {

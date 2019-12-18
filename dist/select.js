@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2019-03-27T07:08:08.957Z
+ * Version: 0.16.1 - 2019-12-18T08:56:04.996Z
  * License: MIT
  */
 
@@ -29,6 +29,7 @@ var KEY = {
     BACKSPACE: 8,
     DELETE: 46,
     COMMAND: 91,
+    COMPOSITION: 229,
     A: 65,
     C: 67,
 
@@ -52,6 +53,9 @@ var KEY = {
     isFunctionKey: function (k) {
         k = k.which ? k.which : k;
         return k >= 112 && k <= 123;
+    },
+    isCompositionKey: function (event) {
+      return event.which === KEY.COMPOSITION;
     },
     isVerticalMovement: function (k){
       return ~[KEY.UP, KEY.DOWN].indexOf(k);
@@ -2456,7 +2460,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         if ($select.tagging.isActivated && $select.search.length > 0) {
 
           // return early with these keys
-          if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC || KEY.isVerticalMovement(e.which)) {
+          if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC || KEY.isVerticalMovement(e.which) || KEY.isCompositionKey(e)) {
             return;
           }
           // always reset the activeIndex to the first item when tagging
@@ -2780,7 +2784,7 @@ uis.directive('uiSelectSingle', ['$timeout','$compile', function($timeout, $comp
           return;
         }
 
-        if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC) {
+        if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC || KEY.isCompositionKey(e) || KEY.isCompositionKey(e)) {
           return;
         }
 

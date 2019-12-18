@@ -444,7 +444,7 @@ uis.directive('uiSelectMultiple', ['uiSelectMinErr', '$timeout', '$document', fu
         if ($select.tagging.isActivated && $select.search.length > 0) {
 
           // return early with these keys
-          if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC || KEY.isVerticalMovement(e.which)) {
+          if (e.which === KEY.TAB || KEY.isControl(e) || KEY.isFunctionKey(e) || e.which === KEY.ESC || KEY.isVerticalMovement(e.which) || KEY.isCompositionKey(e)) {
             return;
           }
           // always reset the activeIndex to the first item when tagging

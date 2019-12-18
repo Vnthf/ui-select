@@ -19,6 +19,7 @@ var KEY = {
     BACKSPACE: 8,
     DELETE: 46,
     COMMAND: 91,
+    COMPOSITION: 229,
     A: 65,
     C: 67,
 
@@ -42,6 +43,9 @@ var KEY = {
     isFunctionKey: function (k) {
         k = k.which ? k.which : k;
         return k >= 112 && k <= 123;
+    },
+    isCompositionKey: function (event) {
+      return event.which === KEY.COMPOSITION;
     },
     isVerticalMovement: function (k){
       return ~[KEY.UP, KEY.DOWN].indexOf(k);

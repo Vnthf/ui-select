@@ -31,6 +31,7 @@ uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelect
 
           $select.disableChoiceExpression = attrs.uiDisableChoice;
           $select.onHighlightCallback = attrs.onHighlight;
+          $select.maximumInputLength = attrs.maximumInputLength || 1000000;
 
           $select.dropdownPosition = attrs.position ? attrs.position.toLowerCase() : uiSelectConfig.dropdownPosition;
           $select.refreshAttr = attrs.refresh;
@@ -92,7 +93,10 @@ uis.directive('uiSelectChoices', ['uiSelectConfig', 'uisRepeatParser', 'uiSelect
             timer = $timeout(function () {
               $select.ensureHighlightVisible();
             }, 200, false);
-            if (!attrs.minimumInputLength || $select.search.length >= attrs.minimumInputLength) {
+            if (
+              (!attrs.minimumInputLength || $select.search.length >= attrs.minimumInputLength) &&
+              (!attrs.maximumInputLength || $select.search.length <= attrs.maximumInputLength)
+            ) {
               $select.refresh(attrs.refresh);
             } else {
               $select.items = [];

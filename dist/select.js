@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2019-12-18T09:05:07.185Z
+ * Version: 0.16.1 - 2020-04-27T01:36:50.870Z
  * License: MIT
  */
 
@@ -972,12 +972,12 @@ uis.controller('uiSelectCtrl',
             return false;
           }
           var inputWidth = containerWidth - input.offsetLeft - (ctrl.multiple ? 16 : 0);
-          if (inputWidth < 50) inputWidth = containerWidth;
+          if (inputWidth < 50) inputWidth = 50;
           ctrl.searchInput.css('width', inputWidth+'px');
           return true;
         };
 
-    ctrl.searchInput.css('width', '10px');
+    ctrl.searchInput.css('width', '50px');
     $timeout(function() { //Give tags time to render correctly
       if (sizeWatch === null && !updateIfVisible(calculateContainerWidth())) {
         sizeWatch = $scope.$watch(calculateContainerWidth, function(containerWidth) {

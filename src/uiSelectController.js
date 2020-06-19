@@ -794,7 +794,10 @@ uis.controller('uiSelectCtrl',
         e.preventDefault();
         e.stopPropagation();
       } else {
-        if (!isNaN(ctrl.maximumInputLength)) {
+        if (
+          !isNaN(ctrl.maximumInputLength) &&
+          data && data.length && data.length > ctrl.maximumInputLength
+        ) {
           data = data.substr(0, ctrl.maximumInputLength);
         }
         ctrl.search = data || EMPTY_SEARCH;

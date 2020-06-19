@@ -1,7 +1,7 @@
 /*!
  * ui-select
  * http://github.com/angular-ui/ui-select
- * Version: 0.16.1 - 2020-04-27T01:36:50.870Z
+ * Version: 0.16.1 - 2020-06-19T08:15:42.570Z
  * License: MIT
  */
 
@@ -1211,6 +1211,9 @@ uis.controller('uiSelectCtrl',
         e.preventDefault();
         e.stopPropagation();
       } else {
+        if (!isNaN(ctrl.maximumInputLength)) {
+          data = data.substr(0, ctrl.maximumInputLength);
+        }
         ctrl.search = data || EMPTY_SEARCH;
       }
       $scope.$applyAsync();

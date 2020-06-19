@@ -794,6 +794,9 @@ uis.controller('uiSelectCtrl',
         e.preventDefault();
         e.stopPropagation();
       } else {
+        var maximumInputLength = ctrl.maximumInputLength || data.length;
+        data = data.substr(0, maximumInputLength);
+
         ctrl.search = data || EMPTY_SEARCH;
       }
       $scope.$applyAsync();
